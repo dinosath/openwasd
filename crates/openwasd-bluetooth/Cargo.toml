@@ -1,0 +1,26 @@
+[package]
+name = "openwasd-bluetooth"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Bluetooth discovery, pairing, and connection lifecycle for OpenWASD"
+
+[dependencies]
+async-trait = "0.1"
+btleplug = { path = "../../../btleplug", optional = true }
+openwasd-core = { path = "../openwasd-core" }
+serde = { version = "1", features = ["derive"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6.4"
+objc2-io-bluetooth = { version = "0.3.2", features = ["IOBluetoothDevice", "objc2-foundation"] }
+objc2-foundation = { version = "0.3.2", features = ["NSArray", "NSString"] }
+
+[target.'cfg(target_os = "android")'.dependencies]
+jni = { version = "0.21", default-features = false }
+robius-android-env = { version = "0.2.0", default-features = false, features = ["makepad"] }
+
+[features]
+default = []
+btleplug = ["dep:btleplug"]
