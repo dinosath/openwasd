@@ -147,6 +147,7 @@ Complexity is relative product complexity: S, M, L, or XL. Platform dependencies
 | Network input transport | Pair devices and send normalized input over Wi-Fi using a secure local-network connection | Android-to-PC, Android-to-Mac, tablet-to-PC, and Android-to-Android scenarios | L | Pairing, discovery, encryption, latency, firewall |
 | USB companion transport | Use USB tethering or direct USB connection for companion input and configuration where supported | Provides a reliable alternative when Wi-Fi is unavailable or congested | L | USB modes, Android host/device roles, platform permissions |
 | Bluetooth companion transport | Use Bluetooth for nearby companion input and control surfaces where bandwidth permits | Enables wireless low-power companion scenarios | L | Bluetooth profiles, pairing, bandwidth, mobile background limits |
+| Bluetooth HID gamepad output | Present an Android companion as a Bluetooth gamepad with button, hat-switch, and axis reports | Lets touch layouts control hosts that expect a physical gamepad | M | Android HID peripheral support and host report compatibility |
 | Output monitoring | Show what the target game or OS receives | Debugging and trust | M | Output API visibility |
 
 ### Companion screen and overlays

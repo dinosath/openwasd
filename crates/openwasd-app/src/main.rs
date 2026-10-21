@@ -16,6 +16,7 @@ app_main!(App);
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 enum LayoutKind {
     Keyboard,
+    Gamepad,
     #[default]
     Touchpad,
 }
@@ -24,6 +25,7 @@ impl LayoutKind {
     fn label(self) -> &'static str {
         match self {
             Self::Keyboard => "Full keyboard",
+            Self::Gamepad => "Gamepad",
             Self::Touchpad => "Touchpad",
         }
     }
@@ -117,7 +119,7 @@ script_mod! {
                                     page_title := Label {
                                         width: Fit
                                         visible: state.current_screen != "layout_surface"
-                                        text: if state.current_screen == "devices" { "Devices" } else if state.current_screen == "layouts" { "Layouts" } else if state.current_screen == "layout_surface" { "Mouse / Keyboard" } else if state.current_screen == "layout_settings" { "Layout settings" } else { "Dashboard" }
+                                        text: if state.current_screen == "devices" { "Devices" } else if state.current_screen == "layouts" { "Layouts" } else if state.current_screen == "layout_surface" { if state.selected_layout_kind == "gamepad" { "Gamepad" } else { "Mouse / Keyboard" } } else if state.current_screen == "layout_settings" { "Layout settings" } else { "Dashboard" }
                                         draw_text.color: #f4f5f8
                                         draw_text.text_style.font_size: if state.is_narrow { 20 } else { 28 }
                                     }
@@ -131,7 +133,7 @@ script_mod! {
 
                                         layout_surface_title := Label {
                                             width: Fill
-                                            text: "Mouse / Keyboard"
+                                            text: if state.selected_layout_kind == "gamepad" { "Gamepad" } else { "Mouse / Keyboard" }
                                             draw_text.color: #f4f5f8
                                             draw_text.text_style.font_size: if state.is_narrow { 19 } else { 25 }
                                         }
@@ -624,6 +626,17 @@ script_mod! {
                                         draw_text.color: #e5e7ed
                                         draw_text.text_style.font_size: 13
                                     }
+
+                                    layout_gamepad_select := Button {
+                                        width: Fill
+                                        height: 56
+                                        text: "  Gamepad"
+                                        draw_bg.color: #292d37
+                                        draw_bg.color_hover: #363c49
+                                        draw_bg.color_down: #414959
+                                        draw_text.color: #e5e7ed
+                                        draw_text.text_style.font_size: 13
+                                    }
                                     layout_custom_2 := Button {
                                         width: Fill
                                         height: 44
@@ -695,6 +708,16 @@ script_mod! {
                                                 width: Fill
                                                 height: 40
                                                 text: "Touchpad"
+                                                draw_bg.color: #292d37
+                                                draw_bg.color_hover: #363c49
+                                                draw_bg.color_down: #414959
+                                                draw_text.color: #e5e7ed
+                                                draw_text.text_style.font_size: 12
+                                            }
+                                            layout_create_gamepad := Button {
+                                                width: Fill
+                                                height: 40
+                                                text: "Gamepad"
                                                 draw_bg.color: #292d37
                                                 draw_bg.color_hover: #363c49
                                                 draw_bg.color_down: #414959
@@ -1023,6 +1046,57 @@ script_mod! {
                                             draw_text.color: #ffffff
                                             draw_text.text_style.font_size: 13
                                         }
+                                    }
+
+                                    layout_surface_gamepad := View {
+                                        width: Fill
+                                        height: Fill
+                                        visible: state.selected_layout_kind == "gamepad"
+                                        flow: Down
+                                        spacing: 16
+                                        padding: 20
+                                        show_bg: true
+                                        draw_bg +: { color: #x191c23 }
+
+                                        gamepad_shoulders := View {
+                                            width: Fill height: 52 flow: Right spacing: 10
+                                            gamepad_lb := Button { width: Fill height: 52 text: "LB" draw_bg.color: #292d37 draw_bg.color_hover: #363c49 draw_bg.color_down: #3159a8 draw_text.color: #e5e7ed draw_text.text_style.font_size: 15 }
+                                            gamepad_lt := Button { width: Fill height: 52 text: "LT" draw_bg.color: #292d37 draw_bg.color_hover: #363c49 draw_bg.color_down: #3159a8 draw_text.color: #e5e7ed draw_text.text_style.font_size: 15 }
+                                            gamepad_rb := Button { width: Fill height: 52 text: "RB" draw_bg.color: #292d37 draw_bg.color_hover: #363c49 draw_bg.color_down: #3159a8 draw_text.color: #e5e7ed draw_text.text_style.font_size: 15 }
+                                            gamepad_rt := Button { width: Fill height: 52 text: "RT" draw_bg.color: #292d37 draw_bg.color_hover: #363c49 draw_bg.color_down: #3159a8 draw_text.color: #e5e7ed draw_text.text_style.font_size: 15 }
+                                        }
+
+                                        gamepad_controls := View {
+                                            width: Fill height: Fill flow: Right spacing: 10 align: Align{ y: 0.5 }
+                                            gamepad_dpad := View {
+                                                width: Fill height: 200 flow: Down spacing: 6 align: Align{ x: 0.5, y: 0.5 }
+                                                gamepad_dpad_up := Button { width: 66 height: 56 text: "↑" draw_bg.color: #292d37 draw_bg.color_hover: #363c49 draw_bg.color_down: #3159a8 draw_text.color: #e5e7ed draw_text.text_style.font_size: 20 }
+                                                gamepad_dpad_horizontal := View {
+                                                    width: Fill height: 56 flow: Right spacing: 6
+                                                    gamepad_dpad_left := Button { width: Fill height: 56 text: "←" draw_bg.color: #292d37 draw_bg.color_hover: #363c49 draw_bg.color_down: #3159a8 draw_text.color: #e5e7ed draw_text.text_style.font_size: 20 }
+                                                    gamepad_dpad_right := Button { width: Fill height: 56 text: "→" draw_bg.color: #292d37 draw_bg.color_hover: #363c49 draw_bg.color_down: #3159a8 draw_text.color: #e5e7ed draw_text.text_style.font_size: 20 }
+                                                }
+                                                gamepad_dpad_down := Button { width: 66 height: 56 text: "↓" draw_bg.color: #292d37 draw_bg.color_hover: #363c49 draw_bg.color_down: #3159a8 draw_text.color: #e5e7ed draw_text.text_style.font_size: 20 }
+                                            }
+                                            gamepad_center_controls := View {
+                                                width: Fill height: 200 flow: Down spacing: 10 align: Align{ y: 0.5 }
+                                                gamepad_menu_row := View {
+                                                    width: Fill height: 48 flow: Right spacing: 8
+                                                    gamepad_select := Button { width: Fill height: 48 text: "Select" draw_bg.color: #292d37 draw_bg.color_hover: #363c49 draw_bg.color_down: #3159a8 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
+                                                    gamepad_home := Button { width: Fill height: 48 text: "Home" draw_bg.color: #292d37 draw_bg.color_hover: #363c49 draw_bg.color_down: #3159a8 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
+                                                    gamepad_start := Button { width: Fill height: 48 text: "Start" draw_bg.color: #292d37 draw_bg.color_hover: #363c49 draw_bg.color_down: #3159a8 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
+                                                }
+                                                gamepad_face_row := View {
+                                                    width: Fill height: Fill flow: Right spacing: 8
+                                                    gamepad_x := Button { width: Fill height: Fill text: "X" draw_bg.color: #3159a8 draw_bg.color_hover: #3b68c1 draw_bg.color_down: #284f9e draw_text.color: #ffffff draw_text.text_style.font_size: 20 }
+                                                    gamepad_y := Button { width: Fill height: Fill text: "Y" draw_bg.color: #a18324 draw_bg.color_hover: #b3912b draw_bg.color_down: #79611b draw_text.color: #ffffff draw_text.text_style.font_size: 20 }
+                                                    gamepad_a := Button { width: Fill height: Fill text: "A" draw_bg.color: #438844 draw_bg.color_hover: #529b53 draw_bg.color_down: #326833 draw_text.color: #ffffff draw_text.text_style.font_size: 20 }
+                                                    gamepad_b := Button { width: Fill height: Fill text: "B" draw_bg.color: #a13b3b draw_bg.color_hover: #b44b4b draw_bg.color_down: #7c2b2b draw_text.color: #ffffff draw_text.text_style.font_size: 20 }
+                                                }
+                                            }
+                                        }
+
+                                        gamepad_status := Label { width: Fill height: 24 text: "Tap a control to send a Bluetooth gamepad press." draw_text.color: #9ba2b1 draw_text.text_style.font_size: 12 }
                                     }
 
                                     layout_surface_keyboard := View {
@@ -1410,6 +1484,7 @@ impl ScriptHook for App {
         self.saved_layouts = load_saved_layouts();
         self.selected_layout_kind = match std::env::var("OPENWASD_START_LAYOUT").as_deref() {
             Ok("keyboard") => LayoutKind::Keyboard,
+            Ok("gamepad") => LayoutKind::Gamepad,
             _ => LayoutKind::Touchpad,
         };
         self.selected_custom_layout = None;
@@ -1475,6 +1550,13 @@ impl MatchEvent for App {
         {
             self.select_layout(LayoutKind::Touchpad, None, "Touchpad", cx);
         }
+        if self
+            .ui
+            .button(cx, ids!(layout_gamepad_select))
+            .clicked(actions)
+        {
+            self.select_layout(LayoutKind::Gamepad, None, "Gamepad", cx);
+        }
 
         for (index, id) in [
             live_id!(layout_custom_1),
@@ -1508,6 +1590,15 @@ impl MatchEvent for App {
         {
             self.create_layout_kind = LayoutKind::Touchpad;
             self.layout_status = "New layout type: Touchpad.".into();
+            self.render_layouts(cx);
+        }
+        if self
+            .ui
+            .button(cx, ids!(layout_create_gamepad))
+            .clicked(actions)
+        {
+            self.create_layout_kind = LayoutKind::Gamepad;
+            self.layout_status = "New layout type: Gamepad.".into();
             self.render_layouts(cx);
         }
         if self.ui.button(cx, ids!(layout_cancel)).clicked(actions) {
@@ -1571,6 +1662,33 @@ impl MatchEvent for App {
         ] {
             if self.ui.button(cx, &[id]).clicked(actions) {
                 self.send_mouse_click(button_mask);
+            }
+        }
+        for (id, button) in [
+            (live_id!(gamepad_a), 0),
+            (live_id!(gamepad_b), 1),
+            (live_id!(gamepad_x), 2),
+            (live_id!(gamepad_y), 3),
+            (live_id!(gamepad_lb), 4),
+            (live_id!(gamepad_rb), 5),
+            (live_id!(gamepad_lt), 6),
+            (live_id!(gamepad_rt), 7),
+            (live_id!(gamepad_select), 8),
+            (live_id!(gamepad_start), 9),
+            (live_id!(gamepad_home), 10),
+        ] {
+            if self.ui.button(cx, &[id]).clicked(actions) {
+                self.send_bluetooth_command(BluetoothCommand::HidGamepadPress(button));
+            }
+        }
+        for (id, direction) in [
+            (live_id!(gamepad_dpad_up), 0),
+            (live_id!(gamepad_dpad_right), 2),
+            (live_id!(gamepad_dpad_down), 4),
+            (live_id!(gamepad_dpad_left), 6),
+        ] {
+            if self.ui.button(cx, &[id]).clicked(actions) {
+                self.send_bluetooth_command(BluetoothCommand::HidGamepadHat(direction));
             }
         }
         self.handle_keyboard_actions(cx, actions);
@@ -1914,8 +2032,11 @@ impl App {
             command,
             BluetoothCommand::HidMouse { .. }
                 | BluetoothCommand::HidKeyboard(_)
+                | BluetoothCommand::HidGamepad(_)
                 | BluetoothCommand::HidClick(_)
                 | BluetoothCommand::HidKey(_)
+                | BluetoothCommand::HidGamepadPress(_)
+                | BluetoothCommand::HidGamepadHat(_)
         ) && !self.hid_ready
         {
             if !self.hid_start_pending {
@@ -1928,12 +2049,18 @@ impl App {
             command,
             BluetoothCommand::HidMouse { .. }
                 | BluetoothCommand::HidKeyboard(_)
+                | BluetoothCommand::HidGamepad(_)
                 | BluetoothCommand::HidClick(_)
                 | BluetoothCommand::HidKey(_)
+                | BluetoothCommand::HidGamepadPress(_)
+                | BluetoothCommand::HidGamepadHat(_)
         ) && match &command {
             BluetoothCommand::HidMouse { .. } | BluetoothCommand::HidClick(_) => {
                 !self.hid_host.mouse_ready()
             }
+            BluetoothCommand::HidGamepad(_)
+            | BluetoothCommand::HidGamepadPress(_)
+            | BluetoothCommand::HidGamepadHat(_) => !self.hid_host.gamepad_ready(),
             _ => !self.hid_host.keyboard_ready(),
         } {
             // Input events are continuous while the touchpad is in use. Until
@@ -2218,6 +2345,7 @@ impl App {
         self.request_hid_start();
         let kind_name = match kind {
             LayoutKind::Keyboard => "keyboard",
+            LayoutKind::Gamepad => "gamepad",
             LayoutKind::Touchpad => "touchpad",
         };
         script_eval!(cx, {
@@ -2237,14 +2365,15 @@ impl App {
             .widget(cx, ids!(layout_create_form))
             .set_visible(cx, self.create_layout_open);
         let is_keyboard = self.selected_layout_kind == LayoutKind::Keyboard;
+        let is_touchpad = self.selected_layout_kind == LayoutKind::Touchpad;
         self.ui.view(cx, ids!(touchpad_surface)).set_walk(
             cx,
             Walk::new(
                 Size::fill(),
-                if is_keyboard {
-                    Size::Fixed(0.0)
-                } else {
+                if is_touchpad {
                     Size::fill()
+                } else {
+                    Size::Fixed(0.0)
                 },
             ),
         );
@@ -2254,7 +2383,7 @@ impl App {
                 cx,
                 Walk::new(
                     Size::fill(),
-                    Size::Fixed(if is_keyboard { 0.0 } else { 52.0 }),
+                    Size::Fixed(if is_touchpad { 52.0 } else { 0.0 }),
                 ),
             );
         let (window_width, _) = initial_window_size();
@@ -2268,16 +2397,19 @@ impl App {
         );
         self.ui
             .widget(cx, ids!(touchpad_surface))
-            .set_visible(cx, !is_keyboard);
+            .set_visible(cx, is_touchpad);
         self.ui
             .widget(cx, ids!(layout_surface_mouse_buttons))
-            .set_visible(cx, !is_keyboard);
+            .set_visible(cx, is_touchpad);
         self.ui
             .widget(cx, ids!(layout_surface_keyboard))
             .set_visible(cx, is_keyboard);
         self.ui
+            .widget(cx, ids!(layout_surface_gamepad))
+            .set_visible(cx, self.selected_layout_kind == LayoutKind::Gamepad);
+        self.ui
             .widget(cx, ids!(layout_touchpad_settings))
-            .set_visible(cx, !is_keyboard);
+            .set_visible(cx, is_touchpad);
         self.ui
             .widget(cx, ids!(layout_keyboard_settings))
             .set_visible(cx, is_keyboard);
@@ -2285,7 +2417,7 @@ impl App {
             .selected_custom_layout
             .and_then(|index| self.saved_layouts.get(index))
             .map(|layout| layout.name.as_str())
-            .unwrap_or("Mouse / Keyboard");
+            .unwrap_or(self.selected_layout_kind.label());
         self.ui
             .label(cx, ids!(layout_surface_title))
             .set_text(cx, preview_name);
@@ -2303,6 +2435,16 @@ impl App {
         self.ui
             .label(cx, ids!(layout_surface_device_status))
             .set_text(cx, &device_status);
+        self.ui.label(cx, ids!(gamepad_status)).set_text(
+            cx,
+            if self.hid_host.gamepad_ready() {
+                "Bluetooth gamepad connected. Tap a control to send a press."
+            } else if self.hid_ready {
+                "Connect a Bluetooth host that enables the gamepad report."
+            } else {
+                "Start Bluetooth HID on Android to send gamepad presses."
+            },
+        );
         self.ui
             .label(cx, ids!(layout_preview_title))
             .set_text(cx, preview_name);

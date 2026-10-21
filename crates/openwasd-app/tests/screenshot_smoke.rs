@@ -98,6 +98,7 @@ fn app_captures_mobile_layout_pages_and_closes() {
         ("layout-picker", "layouts", "touchpad"),
         ("touchpad-surface", "layout_surface", "touchpad"),
         ("keyboard-surface", "layout_surface", "keyboard"),
+        ("gamepad-surface", "layout_surface", "gamepad"),
         ("touchpad-settings", "layout_settings", "touchpad"),
         ("keyboard-settings", "layout_settings", "keyboard"),
     ] {
@@ -113,6 +114,7 @@ fn app_captures_mobile_layout_pages_and_closes() {
     for (name, layout) in [
         ("landscape-touchpad-surface", "touchpad"),
         ("landscape-keyboard-surface", "keyboard"),
+        ("landscape-gamepad-surface", "gamepad"),
     ] {
         let (_, width, height) = capture_screenshot_for(
             name,

@@ -192,8 +192,15 @@ triggers, motion, and touchpad events; build a live input inspector.
 ### Phase 3 — BLEK-style companion output
 
 Add Android keyboard, mouse, trackpad, presenter, media, keep-alive, voice and
-clipboard actions, and custom layouts. Start with a single Android-to-desktop
-path before generalizing.
+clipboard actions, and custom layouts. The current Android Bluetooth HID slice
+supports mouse and keyboard reports plus a gamepad layout that sends momentary
+button and D-pad presses through a seven-byte HID gamepad report. It includes
+16 buttons, a hat switch, and four centered axes; touch-layout button taps are
+released automatically after 50 ms. This is a Bluetooth HID peripheral output
+on Android, not a cross-platform virtual gamepad adapter. Validate the gamepad
+descriptor against real macOS and other intended hosts before claiming broader
+host compatibility. Continue with a single Android-to-desktop path before
+generalizing.
 
 ### Phase 4 — Profiles and routing
 

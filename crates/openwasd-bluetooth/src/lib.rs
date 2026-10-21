@@ -41,8 +41,11 @@ fn log_hid_report_delivery(kind: &str, delivered: bool, details: &str) {
     use std::sync::atomic::{AtomicUsize, Ordering};
     static MOUSE_REPORTS: AtomicUsize = AtomicUsize::new(0);
     static KEYBOARD_REPORTS: AtomicUsize = AtomicUsize::new(0);
+    static GAMEPAD_REPORTS: AtomicUsize = AtomicUsize::new(0);
     let counter = if kind == "mouse" {
         &MOUSE_REPORTS
+    } else if kind == "gamepad" {
+        &GAMEPAD_REPORTS
     } else {
         &KEYBOARD_REPORTS
     };
@@ -107,10 +110,19 @@ impl HidHostState {
     pub fn keyboard_ready(&self) -> bool {
         self.name.is_some() && self.report_mask & 2 != 0
     }
+    pub fn gamepad_ready(&self) -> bool {
+        self.name.is_some() && self.report_mask & 4 != 0
+    }
     pub fn label(&self) -> Option<String> {
         self.name.as_ref().map(|name| {
             if self.mouse_ready() && self.keyboard_ready() {
-                format!("{name} connected · mouse and keyboard ready")
+                if self.gamepad_ready() {
+                    format!("{name} connected · mouse, keyboard, and gamepad ready")
+                } else {
+                    format!("{name} connected · mouse and keyboard ready")
+                }
+            } else if self.gamepad_ready() {
+                format!("{name} connected · gamepad ready")
             } else if self.mouse_ready() {
                 format!("{name} connected · mouse ready; keyboard waiting")
             } else if self.keyboard_ready() {
@@ -211,6 +223,9 @@ pub trait BluetoothAdapter: Send + Sync + 'static {
         Ok(false)
     }
     async fn send_hid_keyboard(&self, _report: [u8; 8]) -> Result<bool, BluetoothError> {
+        Ok(false)
+    }
+    async fn send_hid_gamepad(&self, _report: [u8; 7]) -> Result<bool, BluetoothError> {
         Ok(false)
     }
     async fn hid_host_name(&self) -> Result<Option<String>, BluetoothError> {
@@ -391,6 +406,21 @@ impl BtleplugAdapter {
             .ok_or_else(|| BluetoothError::Failed("BLE HID peripheral is not started".into()))?;
         peripheral
             .send_keyboard_report(report)
+            .map_err(|error| BluetoothError::Failed(error.to_string()))
+    }
+
+    /// Send a gamepad report: 16 buttons, a neutral hat, and four centered axes.
+    #[cfg(target_os = "android")]
+    pub fn send_hid_gamepad_report(&self, report: [u8; 7]) -> Result<bool, BluetoothError> {
+        let peripheral = self
+            .hid_peripheral
+            .lock()
+            .map_err(|error| BluetoothError::Failed(error.to_string()))?;
+        let peripheral = peripheral
+            .as_ref()
+            .ok_or_else(|| BluetoothError::Failed("BLE HID peripheral is not started".into()))?;
+        peripheral
+            .send_gamepad_report(report)
             .map_err(|error| BluetoothError::Failed(error.to_string()))
     }
 
@@ -736,6 +766,22 @@ impl BluetoothAdapter for BtleplugAdapter {
                     false,
                     &format!("service_status={status}; connected_host={host}"),
                 );
+            }
+            Ok(delivered)
+        }
+        #[cfg(not(target_os = "android"))]
+        {
+            let _ = report;
+            Ok(false)
+        }
+    }
+
+    async fn send_hid_gamepad(&self, report: [u8; 7]) -> Result<bool, BluetoothError> {
+        #[cfg(target_os = "android")]
+        {
+            let delivered = self.send_hid_gamepad_report(report)?;
+            if delivered {
+                log_hid_report_delivery("gamepad", true, "");
             }
             Ok(delivered)
         }
@@ -1124,8 +1170,11 @@ pub enum BluetoothCommand {
         wheel: i8,
     },
     HidKeyboard([u8; 8]),
+    HidGamepad([u8; 7]),
     HidClick(i8),
     HidKey([u8; 8]),
+    HidGamepadPress(u8),
+    HidGamepadHat(u8),
 }
 
 #[derive(Clone, Debug)]
@@ -1167,8 +1216,11 @@ impl BluetoothService {
                         | BluetoothCommand::RetryStartHid
                         | BluetoothCommand::HidMouse { .. }
                         | BluetoothCommand::HidKeyboard(_)
+                        | BluetoothCommand::HidGamepad(_)
                         | BluetoothCommand::HidClick(_)
                         | BluetoothCommand::HidKey(_)
+                        | BluetoothCommand::HidGamepadPress(_)
+                        | BluetoothCommand::HidGamepadHat(_)
                 );
                 let result = match command {
                     BluetoothCommand::Scan => {
@@ -1239,6 +1291,19 @@ impl BluetoothService {
                                 ))
                             }
                         }),
+                    BluetoothCommand::HidGamepad(report) => adapter
+                        .send_hid_gamepad(report)
+                        .await
+                        .and_then(|delivered| {
+                            if delivered {
+                                Ok(())
+                            } else {
+                                Err(BluetoothError::Failed(
+                                    "No connected Bluetooth HID host accepts gamepad reports"
+                                        .into(),
+                                ))
+                            }
+                        }),
                     BluetoothCommand::HidClick(button) => {
                         debug_log(&format!("sending HID mouse click; buttons={button}"));
                         match adapter.send_hid_mouse(button, 0, 0, 0).await {
@@ -1269,6 +1334,53 @@ impl BluetoothService {
                                 "HID keyboard press report was not delivered".into(),
                             )),
                             Err(error) => Err(error),
+                        }
+                    }
+                    BluetoothCommand::HidGamepadPress(button) => {
+                        if button >= 16 {
+                            Err(BluetoothError::Failed(
+                                "Gamepad button index must be between 0 and 15".into(),
+                            ))
+                        } else {
+                            let mut report = [0; 7];
+                            report[(button / 8) as usize] = 1 << (button % 8);
+                            report[2] = 0x0f; // centered hat switch
+                            match adapter.send_hid_gamepad(report).await {
+                                Ok(true) => {
+                                    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+                                    adapter
+                                        .send_hid_gamepad([0, 0, 0x0f, 0, 0, 0, 0])
+                                        .await
+                                        .map(|_| ())
+                                }
+                                Ok(false) => Err(BluetoothError::Failed(
+                                    "HID gamepad press report was not delivered".into(),
+                                )),
+                                Err(error) => Err(error),
+                            }
+                        }
+                    }
+                    BluetoothCommand::HidGamepadHat(hat) => {
+                        if hat > 7 {
+                            Err(BluetoothError::Failed(
+                                "Gamepad hat direction must be between 0 and 7".into(),
+                            ))
+                        } else {
+                            let mut report = [0; 7];
+                            report[2] = hat & 0x0f;
+                            match adapter.send_hid_gamepad(report).await {
+                                Ok(true) => {
+                                    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+                                    adapter
+                                        .send_hid_gamepad([0, 0, 0x0f, 0, 0, 0, 0])
+                                        .await
+                                        .map(|_| ())
+                                }
+                                Ok(false) => Err(BluetoothError::Failed(
+                                    "HID gamepad direction report was not delivered".into(),
+                                )),
+                                Err(error) => Err(error),
+                            }
                         }
                     }
                 };
@@ -1412,6 +1524,7 @@ mod tests {
     struct ReportRecordingAdapter {
         mouse: Arc<Mutex<Vec<(i8, i8, i8, i8)>>>,
         keyboard: Arc<Mutex<Vec<[u8; 8]>>>,
+        gamepad: Arc<Mutex<Vec<[u8; 7]>>>,
         connected: bool,
     }
 
@@ -1444,6 +1557,10 @@ mod tests {
         }
         async fn send_hid_keyboard(&self, report: [u8; 8]) -> Result<bool, BluetoothError> {
             self.keyboard.lock().await.push(report);
+            Ok(self.connected)
+        }
+        async fn send_hid_gamepad(&self, report: [u8; 7]) -> Result<bool, BluetoothError> {
+            self.gamepad.lock().await.push(report);
             Ok(self.connected)
         }
     }
@@ -1620,5 +1737,103 @@ mod tests {
             *reports.lock().await,
             vec![(0, 15, 3, 0), (0, -8, -5, 0), (0, 127, -127, 0)]
         );
+    }
+
+    #[tokio::test]
+    async fn gamepad_button_press_sends_button_bit_then_neutral_release() {
+        let adapter = ReportRecordingAdapter {
+            connected: true,
+            ..Default::default()
+        };
+        let reports = Arc::clone(&adapter.gamepad);
+        let service = BluetoothService::spawn(adapter);
+
+        for button in [0, 7, 8, 15] {
+            service
+                .command_sender()
+                .send(BluetoothCommand::HidGamepadPress(button))
+                .await
+                .unwrap();
+        }
+        service
+            .command_sender()
+            .send(BluetoothCommand::RefreshConnected)
+            .await
+            .unwrap();
+        let event = tokio::time::timeout(std::time::Duration::from_secs(2), service.next_event())
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(matches!(event, BluetoothEvent::SystemDevices(_)));
+
+        let reports = reports.lock().await;
+        assert_eq!(reports.len(), 8);
+        for (pair, expected) in reports.chunks_exact(2).zip([
+            [1, 0, 0x0f, 0, 0, 0, 0],
+            [0x80, 0, 0x0f, 0, 0, 0, 0],
+            [0, 1, 0x0f, 0, 0, 0, 0],
+            [0, 0x80, 0x0f, 0, 0, 0, 0],
+        ]) {
+            assert_eq!(pair[0], expected);
+            assert_eq!(pair[1], [0, 0, 0x0f, 0, 0, 0, 0]);
+        }
+    }
+
+    #[tokio::test]
+    async fn gamepad_hat_press_sends_direction_then_neutral_release() {
+        let adapter = ReportRecordingAdapter {
+            connected: true,
+            ..Default::default()
+        };
+        let reports = Arc::clone(&adapter.gamepad);
+        let service = BluetoothService::spawn(adapter);
+
+        for direction in [0, 2, 4, 6] {
+            service
+                .command_sender()
+                .send(BluetoothCommand::HidGamepadHat(direction))
+                .await
+                .unwrap();
+        }
+        service
+            .command_sender()
+            .send(BluetoothCommand::RefreshConnected)
+            .await
+            .unwrap();
+        let event = tokio::time::timeout(std::time::Duration::from_secs(2), service.next_event())
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(matches!(event, BluetoothEvent::SystemDevices(_)));
+
+        let reports = reports.lock().await;
+        assert_eq!(reports.len(), 8);
+        for (pair, direction) in reports.chunks_exact(2).zip([0, 2, 4, 6]) {
+            assert_eq!(pair[0], [0, 0, direction, 0, 0, 0, 0]);
+            assert_eq!(pair[1], [0, 0, 0x0f, 0, 0, 0, 0]);
+        }
+    }
+
+    #[tokio::test]
+    async fn invalid_gamepad_input_is_rejected_without_sending_reports() {
+        let adapter = ReportRecordingAdapter {
+            connected: true,
+            ..Default::default()
+        };
+        let reports = Arc::clone(&adapter.gamepad);
+        let service = BluetoothService::spawn(adapter);
+        for command in [
+            BluetoothCommand::HidGamepadPress(16),
+            BluetoothCommand::HidGamepadHat(8),
+        ] {
+            service.command_sender().send(command).await.unwrap();
+            let event =
+                tokio::time::timeout(std::time::Duration::from_secs(1), service.next_event())
+                    .await
+                    .unwrap()
+                    .unwrap();
+            assert!(matches!(event, BluetoothEvent::Error { .. }));
+        }
+        assert!(reports.lock().await.is_empty());
     }
 }
