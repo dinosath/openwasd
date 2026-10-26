@@ -52,7 +52,9 @@ fn log_hid_report_delivery(kind: &str, delivered: bool, details: &str) {
     let count = counter.fetch_add(1, Ordering::Relaxed) + 1;
     if delivered {
         if count == 1 || count % 100 == 0 {
-            debug_log(&format!("HID {kind} report delivered (report #{count})"));
+            debug_log(&format!(
+                "HID {kind} report delivered (report #{count}); {details}"
+            ));
         }
     } else if count == 1 || count % 25 == 0 {
         debug_log(&format!(
@@ -247,6 +249,8 @@ pub struct BtleplugAdapter {
     hid_peripheral: std::sync::Mutex<Option<HidPeripheral>>,
     #[cfg(target_os = "android")]
     hid_permission_prompted: std::sync::atomic::AtomicBool,
+    #[cfg(target_os = "android")]
+    scan_permission_prompted: std::sync::atomic::AtomicBool,
 }
 
 #[cfg(feature = "btleplug")]
@@ -275,6 +279,8 @@ impl BtleplugAdapter {
             hid_peripheral: std::sync::Mutex::new(None),
             #[cfg(target_os = "android")]
             hid_permission_prompted: std::sync::atomic::AtomicBool::new(false),
+            #[cfg(target_os = "android")]
+            scan_permission_prompted: std::sync::atomic::AtomicBool::new(false),
         }
     }
 
@@ -459,7 +465,11 @@ impl BtleplugAdapter {
         self.start_hid_peripheral("OpenWASD")?;
         for _ in 0..50 {
             let status = self.hid_status()?;
-            if status.starts_with("System HID ready") || status.starts_with("Connected to ") {
+            if status.starts_with("System HID ready")
+                || status.starts_with("System HID is ready")
+                || status.starts_with("Connecting system HID to ")
+                || status.starts_with("Connected to ")
+            {
                 debug_log(&format!("Bluetooth HID is ready: {status}"));
                 return Ok(());
             }
@@ -648,6 +658,67 @@ fn request_android_hid_permissions(
     }
 }
 
+#[cfg(all(feature = "btleplug", target_os = "android"))]
+fn request_android_scan_permission(
+    prompted: &std::sync::atomic::AtomicBool,
+) -> Result<(), BluetoothError> {
+    use jni::objects::JObject;
+
+    let granted = robius_android_env::with_activity(|env, activity| -> jni::errors::Result<bool> {
+        let sdk = env
+            .get_static_field("android/os/Build$VERSION", "SDK_INT", "I")?
+            .i()?;
+        if sdk < 23 {
+            return Ok(true);
+        }
+
+        let permission_name = if sdk >= 31 {
+            "android.permission.BLUETOOTH_SCAN"
+        } else {
+            "android.permission.ACCESS_FINE_LOCATION"
+        };
+        let permission = env.new_string(permission_name)?;
+        let is_granted = env
+            .call_method(
+                activity,
+                "checkSelfPermission",
+                "(Ljava/lang/String;)I",
+                &[(&permission).into()],
+            )?
+            .i()?
+            == 0;
+        if is_granted {
+            return Ok(true);
+        }
+
+        if prompted.swap(true, std::sync::atomic::Ordering::AcqRel) {
+            return Ok(false);
+        }
+
+        let string_class = env.find_class("java/lang/String")?;
+        let permission_array = env.new_object_array(1, string_class, JObject::null())?;
+        env.set_object_array_element(&permission_array, 0, permission)?;
+        env.call_method(
+            activity,
+            "requestPermissions",
+            "([Ljava/lang/String;I)V",
+            &[(&permission_array).into(), 0x4f58.into()],
+        )?;
+        Ok(false)
+    })
+    .map_err(|error| BluetoothError::Failed(error.to_string()))?
+    .map_err(|error| BluetoothError::Failed(error.to_string()))?;
+
+    if granted {
+        prompted.store(false, std::sync::atomic::Ordering::Release);
+        Ok(())
+    } else {
+        Err(BluetoothError::Failed(
+            "Android Bluetooth scan permission requested; grant it and scan again".into(),
+        ))
+    }
+}
+
 #[cfg(feature = "btleplug")]
 #[async_trait]
 impl BluetoothAdapter for BtleplugAdapter {
@@ -724,8 +795,9 @@ impl BluetoothAdapter for BtleplugAdapter {
         #[cfg(target_os = "android")]
         {
             let delivered = self.send_hid_mouse_report(buttons, dx, dy, wheel)?;
+            let report = format!("buttons={buttons} dx={dx} dy={dy} wheel={wheel}");
             if delivered {
-                log_hid_report_delivery("mouse", true, "");
+                log_hid_report_delivery("mouse", true, &report);
             } else {
                 let status = self.hid_status().unwrap_or_else(|error| error.to_string());
                 let host = self
@@ -736,7 +808,7 @@ impl BluetoothAdapter for BtleplugAdapter {
                 log_hid_report_delivery(
                     "mouse",
                     false,
-                    &format!("service_status={status}; connected_host={host}"),
+                    &format!("{report}; service_status={status}; connected_host={host}"),
                 );
             }
             Ok(delivered)
@@ -752,8 +824,9 @@ impl BluetoothAdapter for BtleplugAdapter {
         #[cfg(target_os = "android")]
         {
             let delivered = self.send_hid_keyboard_report(report)?;
+            let report_details = format!("report={report:?}");
             if delivered {
-                log_hid_report_delivery("keyboard", true, "");
+                log_hid_report_delivery("keyboard", true, &report_details);
             } else {
                 let status = self.hid_status().unwrap_or_else(|error| error.to_string());
                 let host = self
@@ -764,7 +837,7 @@ impl BluetoothAdapter for BtleplugAdapter {
                 log_hid_report_delivery(
                     "keyboard",
                     false,
-                    &format!("service_status={status}; connected_host={host}"),
+                    &format!("{report_details}; service_status={status}; connected_host={host}"),
                 );
             }
             Ok(delivered)
@@ -793,6 +866,9 @@ impl BluetoothAdapter for BtleplugAdapter {
     }
 
     async fn scan(&self) -> Result<Vec<BluetoothDeviceInfo>, BluetoothError> {
+        #[cfg(target_os = "android")]
+        request_android_scan_permission(&self.scan_permission_prompted)?;
+
         let adapter = self.adapter().await?;
         debug_log("starting BLE scan");
         adapter
@@ -878,43 +954,67 @@ impl BluetoothAdapter for BtleplugAdapter {
                 .await
                 .map_err(|e| BluetoothError::Failed(e.to_string()))?;
             let name = properties.as_ref().and_then(|p| p.local_name.clone());
-            debug_log(&format!("connected GATT device name={name:?}"));
+            let id = peripheral.id().to_string();
+            let rssi_dbm = properties.as_ref().and_then(|p| p.rssi);
+            let services = properties
+                .map(|p| {
+                    p.services
+                        .into_iter()
+                        .map(|uuid| uuid.to_string())
+                        .collect()
+                })
+                .unwrap_or_default();
+            debug_log(&format!(
+                "connected GATT device id={id:?} name={name:?} rssi_dbm={rssi_dbm:?} services={services:?}"
+            ));
             devices.push(BluetoothDeviceInfo {
-                id: peripheral.id().to_string(),
+                id,
                 kind: classify_name(name.as_deref()),
                 name,
                 transport: Transport::Bluetooth,
                 state: ConnectionState::Connected,
-                rssi_dbm: properties.as_ref().and_then(|p| p.rssi),
+                rssi_dbm,
                 battery_percent: None,
-                services: properties
-                    .map(|p| {
-                        p.services
-                            .into_iter()
-                            .map(|uuid| uuid.to_string())
-                            .collect()
-                    })
-                    .unwrap_or_default(),
+                services,
                 trusted: false,
             });
         }
 
         let system_devices = system_paired_devices();
+        let system_connected = system_devices
+            .iter()
+            .filter(|device| device.state == ConnectionState::Connected)
+            .count();
+        let system_paired = system_devices
+            .iter()
+            .filter(|device| device.state == ConnectionState::Paired)
+            .count();
         debug_log(&format!(
-            "native system Bluetooth query returned {} paired device(s)",
-            system_devices.len()
+            "native system Bluetooth query returned {} device(s): {system_connected} connected, {system_paired} paired",
+            system_devices.len(),
         ));
         for device in &system_devices {
             debug_log(&format!(
-                "system device name={:?} state={:?}",
-                device.name, device.state
+                "system device id={:?} name={:?} state={:?} kind={:?}",
+                device.id, device.name, device.state, device.kind
             ));
         }
         // Keep paired devices visible in the device list. Their state remains
         // Paired unless the native API can confirm an active connection.
         merge_devices(&mut devices, system_devices);
         sort_devices(&mut devices);
-        debug_log(&format!("publishing {} connected device(s)", devices.len()));
+        let connected = devices
+            .iter()
+            .filter(|device| device.state == ConnectionState::Connected)
+            .count();
+        let paired = devices
+            .iter()
+            .filter(|device| device.state == ConnectionState::Paired)
+            .count();
+        debug_log(&format!(
+            "publishing {} Bluetooth device(s): {connected} connected, {paired} paired",
+            devices.len()
+        ));
         Ok(devices)
     }
 
@@ -1237,9 +1337,17 @@ impl BluetoothService {
                     }
                     BluetoothCommand::RefreshConnected => match adapter.connected_devices().await {
                         Ok(devices) => {
+                            let connected = devices
+                                .iter()
+                                .filter(|device| device.state == ConnectionState::Connected)
+                                .count();
+                            let paired = devices
+                                .iter()
+                                .filter(|device| device.state == ConnectionState::Paired)
+                                .count();
                             debug_log(&format!(
-                                "connected-device refresh returned {} device(s)",
-                                devices.len()
+                                "Bluetooth device refresh: {connected} connected, {paired} paired ({} total)",
+                                devices.len(),
                             ));
                             let _ = event_tx.send(BluetoothEvent::SystemDevices(devices)).await;
                             match adapter.hid_host_state().await {

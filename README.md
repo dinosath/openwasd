@@ -12,7 +12,7 @@ OpenWASD is a cross-platform input control workspace built around a shared Rust 
 - Connectivity strip for Bluetooth, USB, and Wi-Fi companion routes.
 - reWASD-inspired mapping workspace with profile/device toolbar, layer rail, controller preview, mapping editor, link-health inspector, and safe-stop affordance.
 
-The Bluetooth service uses the local `../btleplug` fork for BLE central scanning, GATT connections, and the `Central::connected_peripherals()` API on supported platforms, including macOS and Android. Keep the fork checked out beside this repository; the local path dependency ensures development builds include its committed Android BLE HID-over-GATT support for mouse and keyboard reports. OpenWASD's Android adapter exposes start/stop, mouse/keyboard report, and connected-host methods; the touchpad and click controls send HID reports through this adapter.
+The Bluetooth service uses the [`dinosath/btleplug` fork](https://github.com/dinosath/btleplug/tree/codex/openwasd-bluetooth-features) for BLE central scanning, GATT connections, and the `Central::connected_peripherals()` API on supported platforms, including macOS and Android. Its Android BLE HID-over-GATT support handles mouse and keyboard reports; OpenWASD's Android adapter exposes start/stop, report, and connected-host methods, and the touchpad and click controls send HID reports through that adapter.
 
 ## Run
 
@@ -149,7 +149,7 @@ The viewport profiles follow published display sizes: [Retroid Pocket 5]
 (1920×1080), [Steam Deck OLED] (1280×800), and [ANBERNIC RG556] in landscape
 (1920×1080; its panel is listed as 1080×1920).
 
-For local development, keep the Makepad and btleplug forks checked out beside this repository at `../makepad` and `../btleplug`. Android builds use cargo-makepad from the local Makepad checkout and btleplug from its local path; the app UI stays on the Makepad branch verified for Android rendering. Robius remains a Cargo dependency.
+For local development, keep the Makepad checkout beside this repository at `../makepad`; Android builds use cargo-makepad from that checkout. OpenWASD resolves btleplug from the Git branch linked above. Only check out `../btleplug` when btleplug source changes are required, and keep any local path override out of committed Cargo files. The app UI stays on the Makepad branch verified for Android rendering. Robius remains a Cargo dependency.
 
 [Retroid Pocket 5]: https://www.goretroid.com/collections/retro-game-system/products/retroid-pocket-5-handheld
 [AYN Odin 2 Portal]: https://www.ayntec.com/

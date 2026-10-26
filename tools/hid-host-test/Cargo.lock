@@ -60,6 +60,7 @@ dependencies = [
 [[package]]
 name = "btleplug"
 version = "0.13.5"
+source = "git+https://github.com/dinosath/btleplug?branch=codex%2Fopenwasd-bluetooth-features#cc57b0ef66690d60e4bed6610ac0befa0a04bc52"
 dependencies = [
  "async-trait",
  "bitflags",

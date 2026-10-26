@@ -140,7 +140,7 @@ script_mod! {
 
                                         layout_surface_device_status := Label {
                                             width: Fill
-                                            text: "Waiting for Mac to connect"
+                                            text: "Waiting for a computer to connect"
                                             draw_text.color: #9ba2b1
                                             draw_text.text_style.font_size: if state.is_narrow { 11 } else { 13 }
                                         }
@@ -493,7 +493,7 @@ script_mod! {
 
                                         device_settings_hint := Label {
                                             width: Fill
-                                            text: "Use this Mac's Bluetooth settings to pair or remove the device."
+                                            text: "Use the computer's Bluetooth settings to pair or remove the device."
                                             draw_text.color: #8f9aaa
                                             draw_text.text_style.font_size: 13
                                         }
@@ -1424,6 +1424,8 @@ pub struct App {
     #[rust]
     hid_host: HidHostState,
     #[rust]
+    hid_host_state_seen: bool,
+    #[rust]
     device_detail_open: bool,
     #[rust]
     device_diagnostics_open: bool,
@@ -1478,6 +1480,7 @@ impl ScriptHook for App {
         self.hid_start_retries = 0;
         self.hid_ready = false;
         self.hid_host = HidHostState::default();
+        self.hid_host_state_seen = false;
         self.device_detail_open = false;
         self.device_diagnostics_open = false;
         self.diagnostic_events = Vec::new();
@@ -2029,7 +2032,7 @@ impl App {
     fn send_bluetooth_command(&mut self, command: BluetoothCommand) {
         #[cfg(target_os = "android")]
         if matches!(
-            command,
+            &command,
             BluetoothCommand::HidMouse { .. }
                 | BluetoothCommand::HidKeyboard(_)
                 | BluetoothCommand::HidGamepad(_)
@@ -2039,6 +2042,7 @@ impl App {
                 | BluetoothCommand::HidGamepadHat(_)
         ) && !self.hid_ready
         {
+            log_hid_input_command("suppressed: Android HID profile is not ready", &command);
             if !self.hid_start_pending {
                 self.request_hid_start();
             }
@@ -2046,7 +2050,7 @@ impl App {
         }
         #[cfg(target_os = "android")]
         if matches!(
-            command,
+            &command,
             BluetoothCommand::HidMouse { .. }
                 | BluetoothCommand::HidKeyboard(_)
                 | BluetoothCommand::HidGamepad(_)
@@ -2063,9 +2067,13 @@ impl App {
             | BluetoothCommand::HidGamepadHat(_) => !self.hid_host.gamepad_ready(),
             _ => !self.hid_host.keyboard_ready(),
         } {
-            // Input events are continuous while the touchpad is in use. Until
-            // a host connects and subscribes, ignore them instead of issuing a
-            // failing Bluetooth command for every pointer movement.
+            log_hid_input_command(
+                &format!(
+                    "suppressed: host has no matching HID report subscription; host={:?} report_mask=0x{:02x}",
+                    self.hid_host.name, self.hid_host.report_mask
+                ),
+                &command,
+            );
             return;
         }
         if let Some(sender) = self
@@ -2073,8 +2081,13 @@ impl App {
             .as_ref()
             .map(BluetoothService::command_sender)
         {
-            if let Err(error) = sender.try_send(command) {
+            if let Err(error) = sender.try_send(command.clone()) {
                 log!("[OpenWASD][HID] input command could not be queued: {error}");
+            } else {
+                log_hid_input_command(
+                    &format!("input queued for host {:?}", self.hid_host.name),
+                    &command,
+                );
             }
         }
     }
@@ -2426,11 +2439,11 @@ impl App {
         } else if self.hid_start_pending {
             "Preparing Bluetooth HID…".to_string()
         } else if self.hid_ready {
-            "Open Bluetooth settings on your Mac and connect to this device".to_string()
+            "Bluetooth HID is ready; waiting for the computer connection".to_string()
         } else if cfg!(target_os = "android") {
             "Starting Bluetooth HID…".to_string()
         } else {
-            "Open this layout on Android to connect a Mac".to_string()
+            "Open this layout on Android to connect a computer".to_string()
         };
         self.ui
             .label(cx, ids!(layout_surface_device_status))
@@ -2814,16 +2827,27 @@ impl App {
                     .set_text(cx, &status);
             }
             BluetoothEvent::SystemDevices(mut system_devices) => {
+                let connected = system_devices
+                    .iter()
+                    .filter(|device| device.state == ConnectionState::Connected)
+                    .count();
+                let paired = system_devices
+                    .iter()
+                    .filter(|device| device.state == ConnectionState::Paired)
+                    .count();
                 log!(
-                    "[OpenWASD][Bluetooth] UI received {} connected/system device(s)",
-                    system_devices.len()
+                    "[OpenWASD][Bluetooth] system refresh: {connected} connected, {paired} paired ({} total)",
+                    system_devices.len(),
                 );
                 for device in &system_devices {
                     log!(
-                        "[OpenWASD][Bluetooth] connected device name={:?} state={:?} kind={:?}",
+                        "[OpenWASD][Bluetooth] system device id={:?} name={:?} state={:?} kind={:?} rssi_dbm={:?} services={:?}",
+                        device.id,
                         device.name,
                         device.state,
-                        device.kind
+                        device.kind,
+                        device.rssi_dbm,
+                        device.services,
                     );
                 }
                 self.bluetooth_devices
@@ -2873,7 +2897,7 @@ impl App {
                 self.render_layouts(cx);
                 self.ui.label(cx, ids!(bluetooth_status)).set_text(
                     cx,
-                    "Bluetooth HID service started. Connect to this device from the Mac’s Bluetooth settings to enable mouse and keyboard input.",
+                    "Bluetooth HID service started. Connect to this device from the computer's Bluetooth settings to enable input.",
                 );
             }
             BluetoothEvent::DeviceUpdated(device) => {
@@ -2906,14 +2930,37 @@ impl App {
                 self.render_layouts(cx);
             }
             BluetoothEvent::HidHost(host) => {
-                if self.hid_host != host {
-                    log!("[OpenWASD][HID] host state: {:?}", host);
+                if !self.hid_host_state_seen || self.hid_host != host {
+                    log!(
+                        "[OpenWASD][HID] host state: name={:?} report_mask=0x{:02x} mouse_ready={} keyboard_ready={} gamepad_ready={}",
+                        host.name,
+                        host.report_mask,
+                        host.mouse_ready(),
+                        host.keyboard_ready(),
+                        host.gamepad_ready(),
+                    );
+                    self.hid_host_state_seen = true;
                 }
                 self.hid_host = host;
                 self.render_layouts(cx);
             }
         }
     }
+}
+
+#[cfg(target_os = "android")]
+fn log_hid_input_command(stage: &str, command: &BluetoothCommand) {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    static MOUSE_INPUTS: AtomicUsize = AtomicUsize::new(0);
+
+    if let BluetoothCommand::HidMouse { .. } = command {
+        let count = MOUSE_INPUTS.fetch_add(1, Ordering::Relaxed) + 1;
+        if count != 1 && count % 25 != 0 {
+            return;
+        }
+    }
+
+    log!("[OpenWASD][HID] {stage}: {command:?}");
 }
 
 fn state_label(state: &ConnectionState) -> &'static str {

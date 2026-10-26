@@ -43,18 +43,26 @@ sequence or scope.
 ## External dependency development
 
 - Make framework and platform-integration changes in the dependency's checked-out
-  local fork (the current local clones are `../makepad` and `../btleplug`).
-  Inspect its remotes, branch, and working tree first; preserve unrelated changes.
+  local fork (the current local clone is `../makepad`; check out `../btleplug`
+  only when btleplug source changes are required). Inspect its remotes, branch,
+  and working tree first; preserve unrelated changes.
 - Make changes directly in the owning repository, validate them there, and commit
   the working change in that repository. Update OpenWASD's dependency reference
   only when the committed fork revision needs to be selected.
+- The tracked btleplug dependency must use the Git repository
+  `https://github.com/dinosath/btleplug` on branch
+  `codex/openwasd-bluetooth-features`. Never commit a local btleplug path in a
+  Cargo manifest or lockfile. If btleplug source edits are required, use the
+  sibling checkout `../btleplug` and switch the dependency to that path only in
+  the local working tree while developing; restore the Git dependency and
+  regenerate `Cargo.lock` before committing OpenWASD changes.
 - Never create or use patch files (`.patch`/`.diff`) or `git apply` to carry
   dependency changes. Do not keep patch-based dependency instructions in docs.
-- For this local development workspace, resolve `btleplug` from the sibling
-  path `../btleplug`, and run Android builds with `cargo-makepad` from the local
-  Makepad checkout (`../makepad/tools/cargo_makepad`). Keep the app UI dependency
-  on its known-compatible Makepad branch until the local Makepad checkout passes
-  the Android rendering check; do not silently swap framework revisions.
+- For this local development workspace, run Android builds with `cargo-makepad`
+  from the local Makepad checkout (`../makepad/tools/cargo_makepad`). Keep the
+  app UI dependency on its known-compatible Makepad branch until the local
+  Makepad checkout passes the Android rendering check; do not silently swap
+  framework revisions.
 
 ## Working in cycles
 
