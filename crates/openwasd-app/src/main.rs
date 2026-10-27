@@ -11,6 +11,8 @@ use std::path::PathBuf;
 #[cfg(any(target_os = "macos", target_os = "windows", target_os = "linux"))]
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
+mod ui_density;
+use ui_density::UiDensity;
 
 app_main!(App);
 
@@ -221,9 +223,9 @@ script_mod! {
                                 width: Fill
                                 height: Fill
                                 flow: Down
-                                spacing: 12
+                                spacing: state.page_gap
                                 margin: Inset{ left: 0 }
-                                padding: Inset{ top: if state.is_compact { 14 } else { 24 }, left: if state.is_compact { 14 } else { 24 }, right: if state.is_compact { 14 } else { 24 }, bottom: if state.is_compact { 30 } else { 40 } }
+                                padding: Inset{ top: state.page_inset, left: state.page_inset, right: state.page_inset, bottom: state.page_bottom_inset }
                                 show_bg: true
                                 draw_bg +: { color: #xf5f8fa }
 
@@ -232,12 +234,12 @@ script_mod! {
                                     height: Fit
                                     visible: !(state.current_screen == "layout_surface" && state.selected_layout_kind == "keyboard" && state.is_compact && !state.is_narrow)
                                     flow: Right
-                                    spacing: if state.is_narrow { 8 } else { 14 }
+                                    spacing: if state.is_narrow { 5 } else { 14 }
                                     align: Align{ y: 0.5 }
 
                                     mobile_menu_toggle := AppButton {
-                                        width: 42
-                                        height: 42
+                                        width: state.header_button_size
+                                        height: state.header_button_size
                                         visible: true
                                         text: "☰"
                                         draw_bg.color: #eef3f7
@@ -252,7 +254,7 @@ script_mod! {
                                         visible: state.current_screen != "layout_surface"
                                         text: if state.current_screen == "devices" { "Devices" } else if state.current_screen == "layouts" { "Layouts" } else if state.current_screen == "layout_surface" { if state.selected_layout_kind == "gamepad" { "Gamepad" } else { "Mouse / Keyboard" } } else if state.current_screen == "layout_settings" { "Layout settings" } else { "Dashboard" }
                                         draw_text.color: #x18263a
-                                        draw_text.text_style.font_size: if state.is_narrow { 18 } else { 22 }
+                                        draw_text.text_style.font_size: if state.is_narrow { 17 } else { 22 }
                                     }
 
                                     layout_surface_heading := View {
@@ -266,14 +268,14 @@ script_mod! {
                                             width: Fill
                                             text: if state.selected_layout_kind == "gamepad" { "Gamepad" } else { "Mouse / Keyboard" }
                                             draw_text.color: #x18263a
-                                            draw_text.text_style.font_size: if state.is_narrow { 19 } else { 25 }
+                                            draw_text.text_style.font_size: state.surface_title_size
                                         }
 
                                         layout_surface_device_status := Label {
                                             width: Fill
                                             text: "Waiting for a computer to connect"
                                             draw_text.color: #x6b7c8c
-                                            draw_text.text_style.font_size: if state.is_narrow { 11 } else { 13 }
+                                            draw_text.text_style.font_size: state.surface_subtitle_size
                                         }
                                     }
 
@@ -288,7 +290,7 @@ script_mod! {
                                         height: Fit
                                         visible: state.current_screen != "layout_surface" && state.current_screen != "layout_settings"
                                         flow: Right
-                                        spacing: 8
+                                        spacing: if state.is_compact { 4 } else { 8 }
 
                                         wifi_connect := AppButton {
                                             width: if state.is_narrow { 40 } else { 82 }
@@ -345,13 +347,13 @@ script_mod! {
                                         height: Fit
                                         visible: state.current_screen == "layout_surface"
                                         flow: Right
-                                        spacing: 8
+                                        spacing: if state.is_compact { 4 } else { 8 }
 
                                         layout_keyboard_toggle := AppButton {
-                                            width: 42
-                                            height: 42
+                                            width: if state.is_compact { 32 } else { 42 }
+                                            height: if state.is_compact { 32 } else { 42 }
                                             text: ""
-                                            icon_walk: Walk{ width: 20, height: 20 }
+                                            icon_walk: Walk{ width: if state.is_compact { 16 } else { 20 }, height: if state.is_compact { 16 } else { 20 } }
                                             draw_icon +: {
                                                 color: #x00a7b8
                                                 svg: crate_resource("self:resources/keyboard.svg")
@@ -364,10 +366,10 @@ script_mod! {
                                         }
 
                                         layout_settings_button := AppButton {
-                                            width: 42
-                                            height: 42
+                                            width: if state.is_compact { 32 } else { 42 }
+                                            height: if state.is_compact { 32 } else { 42 }
                                             text: ""
-                                            icon_walk: Walk{ width: 20, height: 20 }
+                                            icon_walk: Walk{ width: if state.is_compact { 16 } else { 20 }, height: if state.is_compact { 16 } else { 20 } }
                                             draw_icon +: {
                                                 color: #x00a7b8
                                                 svg: crate_resource("self:resources/settings.svg")
@@ -1112,7 +1114,7 @@ script_mod! {
                                     height: if state.current_screen == "layout_surface" { Fill } else { Fit }
                                     visible: state.current_screen == "layout_surface"
                                     flow: Down
-                                    spacing: 8
+                                    spacing: if state.is_compact { 4 } else { 8 }
 
                                     touchpad_surface := RoundedView {
                                         width: Fill
@@ -1120,11 +1122,11 @@ script_mod! {
                                         visible: state.selected_layout_kind == "touchpad"
                                         flow: Right
                                         spacing: 6
-                                        padding: 8
+                                        padding: if state.is_compact { 4 } else { 8 }
                                         show_bg: true
                                         draw_bg +: {
                                             color: #xe6f7f9
-                                            radius: 14.0
+                                            radius: if state.is_compact { 8.0 } else { 14.0 }
                                         }
 
                                         touchpad_center := View {
@@ -1176,40 +1178,40 @@ script_mod! {
 
                                     layout_surface_mouse_buttons := View {
                                         width: Fill
-                                        height: 52
+                                        height: if state.is_compact { 36 } else { 52 }
                                         visible: state.selected_layout_kind == "touchpad"
                                         flow: Right
-                                        spacing: 8
+                                        spacing: if state.is_compact { 4 } else { 8 }
 
                                         surface_left_click := AppButton {
                                             width: Fill
-                                            height: 52
+                                            height: state.surface_button_height
                                             text: "Left click"
                                             draw_bg.color: #b7eaf0
                                             draw_bg.color_hover: #x90dce5
                                             draw_bg.color_down: #x63cbd6
                                             draw_text.color: #x182b3c
-                                            draw_text.text_style.font_size: 13
+                                            draw_text.text_style.font_size: if state.is_compact { 10 } else { 13 }
                                         }
                                         surface_middle_click := AppButton {
                                             width: Fill
-                                            height: 52
+                                            height: state.surface_button_height
                                             text: "Middle click"
                                             draw_bg.color: #b7eaf0
                                             draw_bg.color_hover: #x90dce5
                                             draw_bg.color_down: #x63cbd6
                                             draw_text.color: #x182b3c
-                                            draw_text.text_style.font_size: 13
+                                            draw_text.text_style.font_size: if state.is_compact { 10 } else { 13 }
                                         }
                                         surface_right_click := AppButton {
                                             width: Fill
-                                            height: 52
+                                            height: state.surface_button_height
                                             text: "Right click"
                                             draw_bg.color: #b7eaf0
                                             draw_bg.color_hover: #x90dce5
                                             draw_bg.color_down: #x63cbd6
                                             draw_text.color: #x182b3c
-                                            draw_text.text_style.font_size: 13
+                                            draw_text.text_style.font_size: if state.is_compact { 10 } else { 13 }
                                         }
                                     }
 
@@ -1575,12 +1577,6 @@ script_mod! {
                                         }
                                     }
                                 }
-                                }
-                                bottom_navigation := View {
-                                    width: Fill height: 42 flow: Right spacing: 8
-                                    visible: state.current_screen != "layout_surface" && state.current_screen != "layout_settings"
-                                    bottom_devices := AppButton { width: Fill height: 42 text: "Devices" icon_walk: Walk{ width: 16 height: 16 } draw_icon +: { color: #x00a7b8 svg: crate_resource("self:resources/bluetooth.svg") } draw_bg.color: if state.current_screen == "devices" { #c9f2f5 } else { #eef3f7 } draw_text.color: #x164e5a }
-                                    bottom_layouts := AppButton { width: Fill height: 42 text: "Layouts" icon_walk: Walk{ width: 16 height: 16 } draw_icon +: { color: #x00a7b8 svg: crate_resource("self:resources/touchpad.svg") } draw_bg.color: if state.current_screen == "layouts" { #c9f2f5 } else { #eef3f7 } draw_text.color: #x164e5a }
                                 }
                             }
 
@@ -2362,9 +2358,7 @@ impl MatchEvent for App {
                 .set_scroll_pos(cx, dvec2(0.0, 0.0));
         }
 
-        if self.ui.button(cx, ids!(nav_devices)).clicked(actions)
-            || self.ui.button(cx, ids!(bottom_devices)).clicked(actions)
-        {
+        if self.ui.button(cx, ids!(nav_devices)).clicked(actions) {
             self.release_custom_controls();
             self.custom_learning = false;
             self.layout_surface_active = false;
@@ -2386,9 +2380,7 @@ impl MatchEvent for App {
             self.render_bluetooth_devices(cx);
         }
 
-        if self.ui.button(cx, ids!(nav_layouts)).clicked(actions)
-            || self.ui.button(cx, ids!(bottom_layouts)).clicked(actions)
-        {
+        if self.ui.button(cx, ids!(nav_layouts)).clicked(actions) {
             self.release_custom_controls();
             self.custom_learning = false;
             self.layout_surface_active = false;
@@ -2414,8 +2406,7 @@ impl AppMain for App {
 
         if !vm.is_reload() {
             let (window_width, window_height) = initial_window_size();
-            let is_compact = window_width <= 1000;
-            let is_narrow = window_width <= 640;
+            let density = UiDensity::for_window(window_width, cfg!(target_os = "android"));
             let initial_screen = match std::env::var("OPENWASD_START_SCREEN").as_deref() {
                 Ok("devices") => "devices",
                 Ok("layouts") => "layouts",
@@ -2430,8 +2421,15 @@ impl AppMain for App {
             script_eval!(vm, {
                 mod.state = {
                     sidebar_collapsed: true,
-                    is_compact: #(is_compact),
-                    is_narrow: #(is_narrow),
+                    is_compact: #(density.compact),
+                    is_narrow: #(density.narrow),
+                    page_inset: #(density.page_inset),
+                    page_bottom_inset: #(density.page_bottom_inset),
+                    page_gap: #(density.page_gap),
+                    header_button_size: #(density.header_button_size),
+                    surface_title_size: #(density.surface_title_size),
+                    surface_subtitle_size: #(density.surface_subtitle_size),
+                    surface_button_height: #(density.surface_button_height),
                     current_screen: #(initial_screen),
                     selected_layout_kind: #(initial_layout_kind),
                     window_width: #(window_width),
@@ -3371,6 +3369,8 @@ impl App {
             .and_then(|index| self.saved_layouts.get(index))
             .map(|layout| layout.controls.len())
             .unwrap_or(0);
+        let (window_width, _) = initial_window_size();
+        let density = UiDensity::for_window(window_width, cfg!(target_os = "android"));
         self.ui
             .widget(cx, ids!(custom_surface_row_2))
             .set_visible(cx, is_custom && control_count > 3);
@@ -3394,16 +3394,20 @@ impl App {
                 cx,
                 Walk::new(
                     Size::fill(),
-                    Size::Fixed(if is_touchpad { 52.0 } else { 0.0 }),
+                    Size::Fixed(if is_touchpad && density.compact {
+                        36.0
+                    } else if is_touchpad {
+                        52.0
+                    } else {
+                        0.0
+                    }),
                 ),
             );
-        let (window_width, _) = initial_window_size();
-        let is_narrow_window = window_width <= 640;
         self.ui.view(cx, ids!(surface_keyboard_function)).set_walk(
             cx,
             Walk::new(
                 Size::fill(),
-                Size::Fixed(if is_narrow_window { 0.0 } else { 34.0 }),
+                Size::Fixed(if density.narrow { 0.0 } else { 34.0 }),
             ),
         );
         self.ui
