@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/openwasd-core", "crates/openwasd-bluetooth", "crates/openwasd-app"]
+members = ["crates/openwasd-core", "crates/openwasd-bluetooth", "crates/openwasd-app", "crates/openwasd-usb", "crates/openwasd-output"]
 
 [workspace.package]
 edition = "2024"

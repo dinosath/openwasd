@@ -9,6 +9,7 @@ description = "OpenWASD cross-platform input mapping workspace"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 openwasd-core = { path = "../openwasd-core" }
+openwasd-usb = { path = "../openwasd-usb" }
 openwasd-bluetooth = { path = "../openwasd-bluetooth", features = ["btleplug"] }
 makepad-widgets = { git = "https://github.com/kevinaboos/makepad", branch = "wayland_restore_maximized_not_fullscreen", features = ["serde"] }
 robius-use-makepad = "0.1.1"

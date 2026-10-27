@@ -1,0 +1,8 @@
+[package]
+name = "openwasd-output"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[target.'cfg(target_os = "linux")'.dependencies]
+evdev = "0.13.2"

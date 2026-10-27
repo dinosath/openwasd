@@ -170,6 +170,33 @@ fn persist_saved_layouts(layouts: &[SavedLayout]) -> Result<(), String> {
 script_mod! {
     use mod.prelude.widgets.*
     let state = mod.state
+    let AppButton = Button {
+        draw_bg.border_size: 0.0
+        draw_bg.border_radius: 8.0
+        draw_bg.color: #eef3f7
+        draw_bg.color_hover: #dcebf0
+        draw_bg.color_down: #c9e8ed
+        draw_bg.color_focus: #e1f2f5
+        draw_bg.color_disabled: #eef3f7
+        draw_text.color: #x182b3c
+        draw_text.color_hover: #x182b3c
+        draw_text.color_down: #x182b3c
+        draw_text.color_focus: #x182b3c
+        draw_text.color_disabled: #x718597
+    }
+    let AppTextInput = TextInput {
+        draw_bg.color: #eef3f7
+        draw_bg.color_empty: #eef3f7
+        draw_bg.color_hover: #e5f3f5
+        draw_bg.color_focus: #ffffff
+        draw_bg.border_color: #d4e3e9
+        draw_bg.border_color_empty: #d4e3e9
+        draw_bg.border_color_focus: #x00a7b8
+        draw_text.color: #x182b3c
+        draw_text.color_empty: #x718597
+        draw_text.color_empty_focus: #x718597
+        draw_text.color_focus: #x182b3c
+    }
 
     startup() do #(App::script_component(vm)) {
         ui: Root {
@@ -179,7 +206,7 @@ script_mod! {
 
             main_window := Window {
                 window.inner_size: vec2(state.window_width, state.window_height)
-                pass +: { clear_color: #x17191f }
+                pass +: { clear_color: #xf5f8fa }
 
                 body +: {
                     main_view := View {
@@ -187,18 +214,18 @@ script_mod! {
                         height: Fill
                         flow: Overlay
                         show_bg: true
-                        draw_bg +: { color: #x17191f }
+                        draw_bg +: { color: #xf5f8fa }
 
                         on_render: || {
                             content := View {
                                 width: Fill
                                 height: Fill
                                 flow: Down
-                                spacing: 22
+                                spacing: 12
                                 margin: Inset{ left: 0 }
-                                padding: if state.is_compact { 18 } else { 30 }
+                                padding: Inset{ top: if state.is_compact { 14 } else { 24 }, left: if state.is_compact { 14 } else { 24 }, right: if state.is_compact { 14 } else { 24 }, bottom: if state.is_compact { 30 } else { 40 } }
                                 show_bg: true
-                                draw_bg +: { color: #x17191f }
+                                draw_bg +: { color: #xf5f8fa }
 
                                 page_header := View {
                                     width: Fill
@@ -208,15 +235,15 @@ script_mod! {
                                     spacing: if state.is_narrow { 8 } else { 14 }
                                     align: Align{ y: 0.5 }
 
-                                    mobile_menu_toggle := Button {
+                                    mobile_menu_toggle := AppButton {
                                         width: 42
                                         height: 42
                                         visible: true
                                         text: "☰"
-                                        draw_bg.color: #292d37
-                                        draw_bg.color_hover: #363c49
-                                        draw_bg.color_down: #414959
-                                        draw_text.color: #e5e7ed
+                                        draw_bg.color: #eef3f7
+                                        draw_bg.color_hover: #dcebf0
+                                        draw_bg.color_down: #c9e8ed
+                                        draw_text.color: #x213246
                                         draw_text.text_style.font_size: 17
                                     }
 
@@ -224,8 +251,8 @@ script_mod! {
                                         width: Fit
                                         visible: state.current_screen != "layout_surface"
                                         text: if state.current_screen == "devices" { "Devices" } else if state.current_screen == "layouts" { "Layouts" } else if state.current_screen == "layout_surface" { if state.selected_layout_kind == "gamepad" { "Gamepad" } else { "Mouse / Keyboard" } } else if state.current_screen == "layout_settings" { "Layout settings" } else { "Dashboard" }
-                                        draw_text.color: #f4f5f8
-                                        draw_text.text_style.font_size: if state.is_narrow { 20 } else { 28 }
+                                        draw_text.color: #x18263a
+                                        draw_text.text_style.font_size: if state.is_narrow { 18 } else { 22 }
                                     }
 
                                     layout_surface_heading := View {
@@ -238,14 +265,14 @@ script_mod! {
                                         layout_surface_title := Label {
                                             width: Fill
                                             text: if state.selected_layout_kind == "gamepad" { "Gamepad" } else { "Mouse / Keyboard" }
-                                            draw_text.color: #f4f5f8
+                                            draw_text.color: #x18263a
                                             draw_text.text_style.font_size: if state.is_narrow { 19 } else { 25 }
                                         }
 
                                         layout_surface_device_status := Label {
                                             width: Fill
                                             text: "Waiting for a computer to connect"
-                                            draw_text.color: #9ba2b1
+                                            draw_text.color: #x6b7c8c
                                             draw_text.text_style.font_size: if state.is_narrow { 11 } else { 13 }
                                         }
                                     }
@@ -263,52 +290,52 @@ script_mod! {
                                         flow: Right
                                         spacing: 8
 
-                                        wifi_connect := Button {
+                                        wifi_connect := AppButton {
                                             width: if state.is_narrow { 40 } else { 82 }
                                             height: 40
                                             enabled: false
                                             text: if state.is_narrow { "" } else { "Wi-Fi" }
                                             icon_walk: Walk{ width: 16, height: 16 }
                                             draw_icon +: {
-                                                color: #8f9aaa
+                                                color: #x8f9aaa
                                                 svg: crate_resource("self:resources/wifi.svg")
                                             }
-                                            draw_bg.color: #252a33
-                                            draw_bg.color_disabled: #252a33
-                                            draw_text.color: #a3adbc
-                                            draw_text.color_disabled: #a3adbc
+                                            draw_bg.color: #edf3f7
+                                            draw_bg.color_disabled: #edf3f7
+                                            draw_text.color: #x718597
+                                            draw_text.color_disabled: #x718597
                                             animator +: { disabled: { default: @on } }
                                         }
 
-                                        bluetooth_connect := Button {
+                                        bluetooth_connect := AppButton {
                                             width: if state.is_narrow { 40 } else { 104 }
                                             height: 40
                                             text: if state.is_narrow { "" } else { "Bluetooth" }
                                             icon_walk: Walk{ width: 16, height: 16 }
                                             draw_icon +: {
-                                                color: #8f9aaa
+                                                color: #x8f9aaa
                                                 svg: crate_resource("self:resources/bluetooth.svg")
                                             }
-                                            draw_bg.color: #252a33
-                                            draw_bg.color_hover: #303746
-                                            draw_bg.color_down: #3b4659
-                                            draw_text.color: #e5e7ed
+                                            draw_bg.color: #edf3f7
+                                            draw_bg.color_hover: #e1f2f5
+                                            draw_bg.color_down: #c9e9ee
+                                            draw_text.color: #x213246
                                         }
 
-                                        usb_connect := Button {
+                                        usb_connect := AppButton {
                                             width: if state.is_narrow { 40 } else { 72 }
                                             height: 40
                                             enabled: false
                                             text: if state.is_narrow { "" } else { "USB" }
                                             icon_walk: Walk{ width: 16, height: 16 }
                                             draw_icon +: {
-                                                color: #8f9aaa
+                                                color: #x8f9aaa
                                                 svg: crate_resource("self:resources/usb.svg")
                                             }
-                                            draw_bg.color: #252a33
-                                            draw_bg.color_disabled: #252a33
-                                            draw_text.color: #a3adbc
-                                            draw_text.color_disabled: #a3adbc
+                                            draw_bg.color: #edf3f7
+                                            draw_bg.color_disabled: #edf3f7
+                                            draw_text.color: #x718597
+                                            draw_text.color_disabled: #x718597
                                             animator +: { disabled: { default: @on } }
                                         }
                                     }
@@ -320,48 +347,48 @@ script_mod! {
                                         flow: Right
                                         spacing: 8
 
-                                        layout_keyboard_toggle := Button {
+                                        layout_keyboard_toggle := AppButton {
                                             width: 42
                                             height: 42
                                             text: ""
                                             icon_walk: Walk{ width: 20, height: 20 }
                                             draw_icon +: {
-                                                color: #a8d8ef
+                                                color: #x00a7b8
                                                 svg: crate_resource("self:resources/keyboard.svg")
                                             }
-                                            draw_bg.color: #292d37
-                                            draw_bg.color_hover: #363c49
-                                            draw_bg.color_down: #414959
-                                            draw_text.color: #e5e7ed
+                                            draw_bg.color: #eef3f7
+                                            draw_bg.color_hover: #dcebf0
+                                            draw_bg.color_down: #c9e8ed
+                                            draw_text.color: #x213246
                                             draw_text.text_style.font_size: 20
                                         }
 
-                                        layout_settings_button := Button {
+                                        layout_settings_button := AppButton {
                                             width: 42
                                             height: 42
                                             text: ""
                                             icon_walk: Walk{ width: 20, height: 20 }
                                             draw_icon +: {
-                                                color: #a8d8ef
+                                                color: #x00a7b8
                                                 svg: crate_resource("self:resources/settings.svg")
                                             }
-                                            draw_bg.color: #292d37
-                                            draw_bg.color_hover: #363c49
-                                            draw_bg.color_down: #414959
-                                            draw_text.color: #e5e7ed
+                                            draw_bg.color: #eef3f7
+                                            draw_bg.color_hover: #dcebf0
+                                            draw_bg.color_down: #c9e8ed
+                                            draw_text.color: #x213246
                                             draw_text.text_style.font_size: 20
                                         }
                                     }
 
-                                    layout_settings_back := Button {
+                                    layout_settings_back := AppButton {
                                         width: 42
                                         height: 42
                                         visible: state.current_screen == "layout_settings"
                                         text: "←"
-                                        draw_bg.color: #292d37
-                                        draw_bg.color_hover: #363c49
-                                        draw_bg.color_down: #414959
-                                        draw_text.color: #e5e7ed
+                                        draw_bg.color: #eef3f7
+                                        draw_bg.color_hover: #dcebf0
+                                        draw_bg.color_down: #c9e8ed
+                                        draw_text.color: #x213246
                                         draw_text.text_style.font_size: 18
                                     }
                                 }
@@ -372,12 +399,13 @@ script_mod! {
                                     scroll_bars: ScrollBars {
                                         show_scroll_x: false
                                         show_scroll_y: state.current_screen != "layout_surface"
+                                        scroll_bar_y.drag_scrolling: true
                                     }
                                     flow: Down
                                     spacing: 22
                                     padding: 0
                                     show_bg: true
-                                    draw_bg +: { color: #x17191f }
+                                    draw_bg +: { color: #xf5f8fa }
 
                                 page_description := Label {
                                     width: Fill
@@ -389,11 +417,11 @@ script_mod! {
                                     } else {
                                         "Manage your devices and configurations."
                                     }
-                                    draw_text.color: #9ba2b1
+                                    draw_text.color: #x6b7c8c
                                     draw_text.text_style.font_size: 14
                                 }
 
-                                device_panel := View {
+                                device_panel := RoundedView {
                                     width: Fill
                                     height: Fit
                                     visible: state.current_screen != "layouts" && state.current_screen != "layout_surface" && state.current_screen != "layout_settings"
@@ -401,37 +429,64 @@ script_mod! {
                                     spacing: 16
                                     padding: 22
                                     show_bg: true
-                                    draw_bg +: { color: #x222630 }
+                                    draw_bg +: { color: #xffffffff radius: 12.0 }
 
+                                    usb_title := Label {
+                                        width: Fill
+                                        text: "USB devices"
+                                        draw_text.color: #x18263a
+                                        draw_text.text_style.font_size: 19
+                                    }
+                                    usb_status := Label {
+                                        width: Fill height: Fit
+                                        text: "Checking connected USB devices…"
+                                        draw_text.color: #x576b7d
+                                        draw_text.text_style.font_size: 13
+                                    }
+                                    usb_capabilities := Label {
+                                        width: Fill height: Fit
+                                        text: "OpenWASD uses Android USB accessory mode. Select a device to connect or disconnect."
+                                        draw_text.color: #x66798b
+                                        draw_text.text_style.font_size: 12
+                                    }
+                                    usb_companion_1 := AppButton { width: Fill height: 42 visible: false text: "" }
+                                    usb_inspect_1 := AppButton { width: Fill height: 36 visible: false text: "View incoming input" }
+                                    usb_companion_2 := AppButton { width: Fill height: 42 visible: false text: "" }
+                                    usb_inspect_2 := AppButton { width: Fill height: 36 visible: false text: "View incoming input" }
+                                    usb_companion_3 := AppButton { width: Fill height: 42 visible: false text: "" }
+                                    usb_inspect_3 := AppButton { width: Fill height: 36 visible: false text: "View incoming input" }
+                                    usb_companion_4 := AppButton { width: Fill height: 42 visible: false text: "" }
+                                    usb_inspect_4 := AppButton { width: Fill height: 36 visible: false text: "View incoming input" }
+                                    usb_bridge_status := Label { width: Fill height: Fit text: "" draw_text.color: #x66798b draw_text.text_style.font_size: 12 }
                                     panel_title := Label {
                                         width: Fill
                                         text: "Bluetooth devices"
-                                        draw_text.color: #f4f5f8
+                                        draw_text.color: #x18263a
                                         draw_text.text_style.font_size: 19
                                     }
 
                                     panel_description := Label {
                                         width: Fill
                                         text: "Scan nearby BLE devices. Pair first in system settings if prompted."
-                                        draw_text.color: #a0a7b5
+                                        draw_text.color: #x66798b
                                         draw_text.text_style.font_size: 14
                                     }
 
-                                    refresh_devices := Button {
+                                    refresh_devices := AppButton {
                                         width: 168
                                         height: 42
                                         text: "Scan Bluetooth"
-                                        draw_bg.color: #3567c8
-                                        draw_bg.color_hover: #4278df
-                                        draw_bg.color_down: #284f9e
-                                        draw_text.color: #ffffff
+                                        draw_bg.color: #x00bfd0
+                                        draw_bg.color_hover: #x20cddd
+                                        draw_bg.color_down: #x44c7d5
+                                        draw_text.color: #x182b3c
                                         draw_text.text_style.font_size: 14
                                     }
 
                                     bluetooth_status := Label {
                                         width: Fill
                                         text: "Bluetooth scan has not started."
-                                        draw_text.color: #a0a7b5
+                                        draw_text.color: #x66798b
                                         draw_text.text_style.font_size: 13
                                     }
 
@@ -439,89 +494,89 @@ script_mod! {
                                         width: Fill
                                         text: "No devices listed. Scan to discover nearby devices."
                                         visible: true
-                                        draw_text.color: #7f8999
+                                        draw_text.color: #x7b8d9d
                                         draw_text.text_style.font_size: 13
                                     }
 
-                                    bluetooth_device_1 := Button {
+                                    bluetooth_device_1 := AppButton {
                                         width: Fill
                                         height: 48
                                         visible: false
                                         text: ""
-                                        draw_bg.color: #292d37
-                                        draw_bg.color_hover: #363c49
-                                        draw_bg.color_down: #414959
-                                        draw_text.color: #e5e7ed
+                                        draw_bg.color: #eef3f7
+                                        draw_bg.color_hover: #dcebf0
+                                        draw_bg.color_down: #c9e8ed
+                                        draw_text.color: #x213246
                                         draw_text.text_style.font_size: 13
                                     }
-                                    bluetooth_device_2 := Button {
+                                    bluetooth_device_2 := AppButton {
                                         width: Fill
                                         height: 48
                                         visible: false
                                         text: ""
-                                        draw_bg.color: #292d37
-                                        draw_bg.color_hover: #363c49
-                                        draw_bg.color_down: #414959
-                                        draw_text.color: #e5e7ed
+                                        draw_bg.color: #eef3f7
+                                        draw_bg.color_hover: #dcebf0
+                                        draw_bg.color_down: #c9e8ed
+                                        draw_text.color: #x213246
                                         draw_text.text_style.font_size: 13
                                     }
-                                    bluetooth_device_3 := Button {
+                                    bluetooth_device_3 := AppButton {
                                         width: Fill
                                         height: 48
                                         visible: false
                                         text: ""
-                                        draw_bg.color: #292d37
-                                        draw_bg.color_hover: #363c49
-                                        draw_bg.color_down: #414959
-                                        draw_text.color: #e5e7ed
+                                        draw_bg.color: #eef3f7
+                                        draw_bg.color_hover: #dcebf0
+                                        draw_bg.color_down: #c9e8ed
+                                        draw_text.color: #x213246
                                         draw_text.text_style.font_size: 13
                                     }
-                                    bluetooth_device_4 := Button {
+                                    bluetooth_device_4 := AppButton {
                                         width: Fill
                                         height: 48
                                         visible: false
                                         text: ""
-                                        draw_bg.color: #292d37
-                                        draw_bg.color_hover: #363c49
-                                        draw_bg.color_down: #414959
-                                        draw_text.color: #e5e7ed
+                                        draw_bg.color: #eef3f7
+                                        draw_bg.color_hover: #dcebf0
+                                        draw_bg.color_down: #c9e8ed
+                                        draw_text.color: #x213246
                                         draw_text.text_style.font_size: 13
                                     }
 
                                     selected_bluetooth_device := Label {
                                         width: Fill
                                         text: "Select a device to connect."
-                                        draw_text.color: #c2c9d4
+                                        draw_text.color: #x576b7d
                                         draw_text.text_style.font_size: 13
                                     }
 
-                                    connect_device := Button {
+                                    connect_device := AppButton {
                                         width: 160
                                         height: 42
                                         enabled: false
                                         text: "Connect"
-                                        draw_bg.color: #3567c8
-                                        draw_bg.color_hover: #4278df
-                                        draw_bg.color_down: #284f9e
-                                        draw_bg.color_disabled: #292d37
-                                        draw_text.color: #ffffff
-                                        draw_text.color_disabled: #7f8999
+                                        draw_bg.color: #x00bfd0
+                                        draw_bg.color_hover: #x20cddd
+                                        draw_bg.color_down: #x44c7d5
+                                        draw_bg.color_disabled: #eef3f7
+                                        draw_text.color: #x182b3c
+                                        draw_text.color_disabled: #x7b8d9d
                                         animator +: { disabled: { default: @on } }
                                     }
 
-                                    system_bluetooth_settings := Button {
+                                    system_bluetooth_settings := AppButton {
                                         width: 210
                                         height: 38
                                         text: "Bluetooth settings"
-                                        draw_bg.color: #292d37
-                                        draw_bg.color_hover: #363c49
-                                        draw_bg.color_down: #414959
-                                        draw_text.color: #c2c9d4
+                                        draw_bg.color: #eef3f7
+                                        draw_bg.color_hover: #dcebf0
+                                        draw_bg.color_down: #c9e8ed
+                                        draw_text.color: #x576b7d
                                         draw_text.text_style.font_size: 12
                                     }
                                 }
 
-                                device_detail_panel := View {
+                                device_detail_panel := RoundedView {
                                     width: Fill
                                     height: Fit
                                     visible: false
@@ -529,29 +584,29 @@ script_mod! {
                                     spacing: 16
                                     padding: 22
                                     show_bg: true
-                                    draw_bg +: { color: #x222630 }
+                                    draw_bg +: { color: #xffffffff radius: 12.0 }
 
-                                    device_detail_back := Button {
+                                    device_detail_back := AppButton {
                                         width: 142
                                         height: 38
                                         text: "←  All devices"
-                                        draw_bg.color: #292d37
-                                        draw_bg.color_hover: #363c49
-                                        draw_bg.color_down: #414959
-                                        draw_text.color: #e5e7ed
+                                        draw_bg.color: #eef3f7
+                                        draw_bg.color_hover: #dcebf0
+                                        draw_bg.color_down: #c9e8ed
+                                        draw_text.color: #x213246
                                     }
 
                                     device_detail_title := Label {
                                         width: Fill
                                         text: "Device settings"
-                                        draw_text.color: #f4f5f8
+                                        draw_text.color: #x18263a
                                         draw_text.text_style.font_size: 22
                                     }
 
                                     device_detail_connection := Label {
                                         width: Fill
                                         text: "Select a connected device to view its settings."
-                                        draw_text.color: #a0a7b5
+                                        draw_text.color: #x66798b
                                         draw_text.text_style.font_size: 14
                                     }
 
@@ -561,24 +616,24 @@ script_mod! {
                                         flow: Right
                                         spacing: 8
 
-                                        device_tab_overview := Button {
+                                        device_tab_overview := AppButton {
                                             width: 112
                                             height: 38
                                             text: "Overview"
-                                            draw_bg.color: #3159a8
-                                            draw_bg.color_hover: #3b68c1
-                                            draw_bg.color_down: #284f9e
-                                            draw_text.color: #ffffff
+                                            draw_bg.color: #x9ee5ed
+                                            draw_bg.color_hover: #x7bd9e3
+                                            draw_bg.color_down: #x44c7d5
+                                            draw_text.color: #x182b3c
                                         }
 
-                                        device_tab_diagnostics := Button {
+                                        device_tab_diagnostics := AppButton {
                                             width: 126
                                             height: 38
                                             text: "Diagnostics"
-                                            draw_bg.color: #292d37
-                                            draw_bg.color_hover: #363c49
-                                            draw_bg.color_down: #414959
-                                            draw_text.color: #e5e7ed
+                                            draw_bg.color: #eef3f7
+                                            draw_bg.color_hover: #dcebf0
+                                            draw_bg.color_down: #c9e8ed
+                                            draw_text.color: #x213246
                                         }
                                     }
 
@@ -591,14 +646,14 @@ script_mod! {
                                         device_overview_details := Label {
                                             width: Fill
                                             text: "Connection details will appear here."
-                                            draw_text.color: #c2c9d4
+                                            draw_text.color: #x576b7d
                                             draw_text.text_style.font_size: 14
                                         }
 
                                         device_settings_hint := Label {
                                             width: Fill
                                             text: "Use the computer's Bluetooth settings to pair or remove the device."
-                                            draw_text.color: #8f9aaa
+                                            draw_text.color: #x718597
                                             draw_text.text_style.font_size: 13
                                         }
                                     }
@@ -613,14 +668,14 @@ script_mod! {
                                         diagnostics_title := Label {
                                             width: Fill
                                             text: "Live input"
-                                            draw_text.color: #f4f5f8
+                                            draw_text.color: #x18263a
                                             draw_text.text_style.font_size: 18
                                         }
 
                                         diagnostics_hint := Label {
                                             width: Fill
-                                            text: "Move or click with the selected device while this window is focused. Events delivered to OpenWASD appear here."
-                                            draw_text.color: #a0a7b5
+                                            text: "Device-specific Bluetooth input inspection is not available yet."
+                                            draw_text.color: #x66798b
                                             draw_text.text_style.font_size: 13
                                         }
 
@@ -628,23 +683,23 @@ script_mod! {
                                             width: Fill
                                             height: Fit
                                             text: "Waiting for mouse, keyboard, or touch input…"
-                                            draw_text.color: #c2e7f6
+                                            draw_text.color: #x176575
                                             draw_text.text_style.font_size: 13
                                         }
 
-                                        diagnostics_clear := Button {
+                                        diagnostics_clear := AppButton {
                                             width: 126
                                             height: 36
                                             text: "Clear events"
-                                            draw_bg.color: #292d37
-                                            draw_bg.color_hover: #363c49
-                                            draw_bg.color_down: #414959
-                                            draw_text.color: #e5e7ed
+                                            draw_bg.color: #eef3f7
+                                            draw_bg.color_hover: #dcebf0
+                                            draw_bg.color_down: #c9e8ed
+                                            draw_text.color: #x213246
                                         }
                                     }
                                 }
 
-                                layouts_panel := View {
+                                layouts_panel := RoundedView {
                                     width: Fill
                                     height: Fit
                                     visible: state.current_screen == "layouts"
@@ -652,7 +707,7 @@ script_mod! {
                                     spacing: 18
                                     padding: 22
                                     show_bg: true
-                                    draw_bg +: { color: #x222630 }
+                                    draw_bg +: { color: #xffffffff radius: 12.0 }
 
                                     layouts_heading := View {
                                         width: Fill
@@ -664,18 +719,18 @@ script_mod! {
                                         layouts_heading_text := Label {
                                             width: Fill
                                             text: "Your layouts"
-                                            draw_text.color: #f4f5f8
+                                            draw_text.color: #x18263a
                                             draw_text.text_style.font_size: 20
                                         }
 
-                                        layout_new := Button {
+                                        layout_new := AppButton {
                                             width: 142
                                             height: 40
                                             text: "+  New layout"
-                                            draw_bg.color: #3567c8
-                                            draw_bg.color_hover: #4278df
-                                            draw_bg.color_down: #284f9e
-                                            draw_text.color: #ffffff
+                                            draw_bg.color: #x00bfd0
+                                            draw_bg.color_hover: #x20cddd
+                                            draw_bg.color_down: #x44c7d5
+                                            draw_text.color: #x182b3c
                                             draw_text.text_style.font_size: 13
                                         }
                                     }
@@ -688,9 +743,9 @@ script_mod! {
                                         spacing: 10
                                         padding: 16
                                         show_bg: true
-                                        draw_bg +: { color: #x191c23 }
+                                        draw_bg +: { color: #xf0f5f8 }
 
-                                        layout_name_input := TextInput {
+                                        layout_name_input := AppTextInput {
                                             width: Fill
                                             height: 42
                                             empty_text: "Name this layout"
@@ -702,41 +757,41 @@ script_mod! {
                                             flow: Right
                                             spacing: 8
 
-                                            layout_create_keyboard := Button {
+                                            layout_create_keyboard := AppButton {
                                                 width: Fill
                                                 height: 40
                                                 text: "Full keyboard"
-                                                draw_bg.color: #292d37
-                                                draw_bg.color_hover: #3b68c1
-                                                draw_bg.color_down: #284f9e
-                                                draw_text.color: #ffffff
+                                                draw_bg.color: #eef3f7
+                                                draw_bg.color_hover: #x7bd9e3
+                                                draw_bg.color_down: #x44c7d5
+                                                draw_text.color: #x182b3c
                                                 draw_text.text_style.font_size: 12
                                             }
 
-                                            layout_create_touchpad := Button {
+                                            layout_create_touchpad := AppButton {
                                                 width: Fill
                                                 height: 40
                                                 text: "Touchpad"
-                                                draw_bg.color: #292d37
-                                                draw_bg.color_hover: #363c49
-                                                draw_bg.color_down: #414959
-                                                draw_text.color: #e5e7ed
+                                                draw_bg.color: #eef3f7
+                                                draw_bg.color_hover: #dcebf0
+                                                draw_bg.color_down: #c9e8ed
+                                                draw_text.color: #x213246
                                                 draw_text.text_style.font_size: 12
                                             }
-                                            layout_create_gamepad := Button {
+                                            layout_create_gamepad := AppButton {
                                                 width: Fill
                                                 height: 40
                                                 text: "Gamepad"
-                                                draw_bg.color: #292d37
-                                                draw_bg.color_hover: #363c49
-                                                draw_bg.color_down: #414959
-                                                draw_text.color: #e5e7ed
+                                                draw_bg.color: #eef3f7
+                                                draw_bg.color_hover: #dcebf0
+                                                draw_bg.color_down: #c9e8ed
+                                                draw_text.color: #x213246
                                                 draw_text.text_style.font_size: 12
                                             }
-                                            layout_create_custom := Button {
+                                            layout_create_custom := AppButton {
                                                 width: Fill height: 40 text: "Custom controls"
-                                                draw_bg.color: #292d37 draw_bg.color_hover: #363c49
-                                                draw_bg.color_down: #3159a8 draw_text.color: #e5e7ed
+                                                draw_bg.color: #eef3f7 draw_bg.color_hover: #dcebf0
+                                                draw_bg.color_down: #x9ee5ed draw_text.color: #x213246
                                                 draw_text.text_style.font_size: 12
                                             }
                                         }
@@ -747,25 +802,25 @@ script_mod! {
                                             flow: Right
                                             spacing: 8
 
-                                            layout_save := Button {
+                                            layout_save := AppButton {
                                                 width: 104
                                                 height: 38
                                                 text: "Save layout"
-                                                draw_bg.color: #3567c8
-                                                draw_bg.color_hover: #4278df
-                                                draw_bg.color_down: #284f9e
-                                                draw_text.color: #ffffff
+                                                draw_bg.color: #x00bfd0
+                                                draw_bg.color_hover: #x20cddd
+                                                draw_bg.color_down: #x44c7d5
+                                                draw_text.color: #x182b3c
                                                 draw_text.text_style.font_size: 12
                                             }
 
-                                            layout_cancel := Button {
+                                            layout_cancel := AppButton {
                                                 width: 92
                                                 height: 38
                                                 text: "Cancel"
-                                                draw_bg.color: #292d37
-                                                draw_bg.color_hover: #363c49
-                                                draw_bg.color_down: #414959
-                                                draw_text.color: #c2c9d4
+                                                draw_bg.color: #eef3f7
+                                                draw_bg.color_hover: #dcebf0
+                                                draw_bg.color_down: #c9e8ed
+                                                draw_text.color: #x576b7d
                                                 draw_text.text_style.font_size: 12
                                             }
                                         }
@@ -773,7 +828,7 @@ script_mod! {
                                         layout_save_status := Label {
                                             width: Fill
                                             text: "Choose a name and a control surface."
-                                            draw_text.color: #9ba2b1
+                                            draw_text.color: #x6b7c8c
                                             draw_text.text_style.font_size: 12
                                         }
                                     }
@@ -784,92 +839,92 @@ script_mod! {
                                         flow: Right
                                         spacing: 10
 
-                                        layout_keyboard_select := Button {
+                                        layout_keyboard_select := AppButton {
                                             width: Fill
                                             height: 56
                                             text: "  Full keyboard"
                                             icon_walk: Walk{ width: 22, height: 22 }
                                             draw_icon +: {
-                                                color: #a8d8ef
+                                                color: #x00a7b8
                                                 svg: crate_resource("self:resources/keyboard.svg")
                                             }
-                                            draw_bg.color: #292d37
-                                            draw_bg.color_hover: #363c49
-                                            draw_bg.color_down: #414959
-                                            draw_text.color: #e5e7ed
+                                            draw_bg.color: #eef3f7
+                                            draw_bg.color_hover: #dcebf0
+                                            draw_bg.color_down: #c9e8ed
+                                            draw_text.color: #x213246
                                             draw_text.text_style.font_size: 13
                                         }
 
-                                        layout_touchpad_select := Button {
+                                        layout_touchpad_select := AppButton {
                                             width: Fill
                                             height: 56
                                             text: "  Touchpad"
                                             icon_walk: Walk{ width: 22, height: 22 }
                                             draw_icon +: {
-                                                color: #a8d8ef
+                                                color: #x00a7b8
                                                 svg: crate_resource("self:resources/touchpad.svg")
                                             }
-                                            draw_bg.color: #3159a8
-                                            draw_bg.color_hover: #3b68c1
-                                            draw_bg.color_down: #284f9e
-                                            draw_text.color: #ffffff
+                                            draw_bg.color: #x9ee5ed
+                                            draw_bg.color_hover: #x7bd9e3
+                                            draw_bg.color_down: #x44c7d5
+                                            draw_text.color: #x182b3c
                                             draw_text.text_style.font_size: 13
                                         }
                                     }
 
-                                    layout_custom_1 := Button {
+                                    layout_custom_1 := AppButton {
                                         width: Fill
                                         height: 44
                                         visible: false
                                         text: ""
-                                        draw_bg.color: #292d37
-                                        draw_bg.color_hover: #363c49
-                                        draw_bg.color_down: #414959
-                                        draw_text.color: #e5e7ed
+                                        draw_bg.color: #eef3f7
+                                        draw_bg.color_hover: #dcebf0
+                                        draw_bg.color_down: #c9e8ed
+                                        draw_text.color: #x213246
                                         draw_text.text_style.font_size: 13
                                     }
 
-                                    layout_gamepad_select := Button {
+                                    layout_gamepad_select := AppButton {
                                         width: Fill
                                         height: 56
                                         text: "  Gamepad"
-                                        draw_bg.color: #292d37
-                                        draw_bg.color_hover: #363c49
-                                        draw_bg.color_down: #414959
-                                        draw_text.color: #e5e7ed
+                                        draw_bg.color: #eef3f7
+                                        draw_bg.color_hover: #dcebf0
+                                        draw_bg.color_down: #c9e8ed
+                                        draw_text.color: #x213246
                                         draw_text.text_style.font_size: 13
                                     }
-                                    layout_custom_2 := Button {
+                                    layout_custom_2 := AppButton {
                                         width: Fill
                                         height: 44
                                         visible: false
                                         text: ""
-                                        draw_bg.color: #292d37
-                                        draw_bg.color_hover: #363c49
-                                        draw_bg.color_down: #414959
-                                        draw_text.color: #e5e7ed
+                                        draw_bg.color: #eef3f7
+                                        draw_bg.color_hover: #dcebf0
+                                        draw_bg.color_down: #c9e8ed
+                                        draw_text.color: #x213246
                                         draw_text.text_style.font_size: 13
                                     }
-                                    layout_custom_3 := Button {
+                                    layout_custom_3 := AppButton {
                                         width: Fill
                                         height: 44
                                         visible: false
                                         text: ""
-                                        draw_bg.color: #292d37
-                                        draw_bg.color_hover: #363c49
-                                        draw_bg.color_down: #414959
-                                        draw_text.color: #e5e7ed
+                                        draw_bg.color: #eef3f7
+                                        draw_bg.color_hover: #dcebf0
+                                        draw_bg.color_down: #c9e8ed
+                                        draw_text.color: #x213246
                                         draw_text.text_style.font_size: 13
                                     }
-                                    layout_custom_4 := Button {
+                                    layout_custom_4 := AppButton {
                                         width: Fill
                                         height: 44
                                         visible: false
                                         text: ""
-                                        draw_bg.color: #292d37
-                                        draw_bg.color_hover: #363c49
-                                        draw_bg.color_down: #414959
-                                        draw_text.color: #e5e7ed
+                                        draw_bg.color: #eef3f7
+                                        draw_bg.color_hover: #dcebf0
+                                        draw_bg.color_down: #c9e8ed
+                                        draw_text.color: #x213246
                                         draw_text.text_style.font_size: 13
                                     }
 
@@ -877,7 +932,7 @@ script_mod! {
                                         width: Fill
                                         visible: false
                                         text: "Touchpad"
-                                        draw_text.color: #f4f5f8
+                                        draw_text.color: #x18263a
                                         draw_text.text_style.font_size: 18
                                     }
 
@@ -887,14 +942,14 @@ script_mod! {
                                         visible: false
                                         flow: Overlay
                                         show_bg: true
-                                        draw_bg.color: #174b69
+                                        draw_bg.color: #e6f7f9
 
                                         touchpad_mouse_icon := Label {
                                             width: Fill
                                             height: Fill
                                             text: "◎"
                                             align: Align{ x: 0.5, y: 0.5 }
-                                            draw_text.color: #a8d8ef
+                                            draw_text.color: #x00a7b8
                                             draw_text.text_style.font_size: 40
                                         }
                                     }
@@ -906,34 +961,34 @@ script_mod! {
                                         flow: Right
                                         spacing: 8
 
-                                        mouse_left_button := Button {
+                                        mouse_left_button := AppButton {
                                             width: Fill
                                             height: 52
                                             text: "Left click"
-                                            draw_bg.color: #28729a
-                                            draw_bg.color_hover: #3286b1
-                                            draw_bg.color_down: #1d5a7b
-                                            draw_text.color: #ffffff
+                                            draw_bg.color: #b7eaf0
+                                            draw_bg.color_hover: #x90dce5
+                                            draw_bg.color_down: #x63cbd6
+                                            draw_text.color: #x182b3c
                                             draw_text.text_style.font_size: 13
                                         }
-                                        mouse_middle_button := Button {
+                                        mouse_middle_button := AppButton {
                                             width: Fill
                                             height: 52
                                             text: "Middle click"
-                                            draw_bg.color: #28729a
-                                            draw_bg.color_hover: #3286b1
-                                            draw_bg.color_down: #1d5a7b
-                                            draw_text.color: #ffffff
+                                            draw_bg.color: #b7eaf0
+                                            draw_bg.color_hover: #x90dce5
+                                            draw_bg.color_down: #x63cbd6
+                                            draw_text.color: #x182b3c
                                             draw_text.text_style.font_size: 13
                                         }
-                                        mouse_right_button := Button {
+                                        mouse_right_button := AppButton {
                                             width: Fill
                                             height: 52
                                             text: "Right click"
-                                            draw_bg.color: #28729a
-                                            draw_bg.color_hover: #3286b1
-                                            draw_bg.color_down: #1d5a7b
-                                            draw_text.color: #ffffff
+                                            draw_bg.color: #b7eaf0
+                                            draw_bg.color_hover: #x90dce5
+                                            draw_bg.color_down: #x63cbd6
+                                            draw_text.color: #x182b3c
                                             draw_text.text_style.font_size: 13
                                         }
                                     }
@@ -946,108 +1001,108 @@ script_mod! {
                                         spacing: 6
                                         padding: 10
                                         show_bg: true
-                                        draw_bg.color: #191c23
+                                        draw_bg.color: #eef3f7
 
                                         keyboard_function_row := View {
                                             width: Fill
                                             height: 34
                                             flow: Right
                                             spacing: 4
-                                            key_esc := Button { width: Fill height: 34 text: "Esc" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 10 }
-                                            key_f1 := Button { width: Fill height: 34 text: "F1" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 10 }
-                                            key_f2 := Button { width: Fill height: 34 text: "F2" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 10 }
-                                            key_f3 := Button { width: Fill height: 34 text: "F3" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 10 }
-                                            key_f4 := Button { width: Fill height: 34 text: "F4" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 10 }
-                                            key_f5 := Button { width: Fill height: 34 text: "F5" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 10 }
-                                            key_f6 := Button { width: Fill height: 34 text: "F6" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 10 }
-                                            key_f7 := Button { width: Fill height: 34 text: "F7" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 10 }
-                                            key_f8 := Button { width: Fill height: 34 text: "F8" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 10 }
-                                            key_f9 := Button { width: Fill height: 34 text: "F9" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 10 }
-                                            key_f10 := Button { width: Fill height: 34 text: "F10" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 10 }
-                                            key_f11 := Button { width: Fill height: 34 text: "F11" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 10 }
-                                            key_f12 := Button { width: Fill height: 34 text: "F12" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 10 }
+                                            key_esc := AppButton { width: Fill height: 34 text: "Esc" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 10 }
+                                            key_f1 := AppButton { width: Fill height: 34 text: "F1" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 10 }
+                                            key_f2 := AppButton { width: Fill height: 34 text: "F2" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 10 }
+                                            key_f3 := AppButton { width: Fill height: 34 text: "F3" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 10 }
+                                            key_f4 := AppButton { width: Fill height: 34 text: "F4" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 10 }
+                                            key_f5 := AppButton { width: Fill height: 34 text: "F5" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 10 }
+                                            key_f6 := AppButton { width: Fill height: 34 text: "F6" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 10 }
+                                            key_f7 := AppButton { width: Fill height: 34 text: "F7" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 10 }
+                                            key_f8 := AppButton { width: Fill height: 34 text: "F8" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 10 }
+                                            key_f9 := AppButton { width: Fill height: 34 text: "F9" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 10 }
+                                            key_f10 := AppButton { width: Fill height: 34 text: "F10" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 10 }
+                                            key_f11 := AppButton { width: Fill height: 34 text: "F11" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 10 }
+                                            key_f12 := AppButton { width: Fill height: 34 text: "F12" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 10 }
                                         }
 
                                         keyboard_number_row := View {
                                             width: Fill height: 40 flow: Right spacing: 4
-                                            key_num1 := Button { width: Fill height: 40 text: "`" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            key_num2 := Button { width: Fill height: 40 text: "1" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            key_num3 := Button { width: Fill height: 40 text: "2" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            key_num4 := Button { width: Fill height: 40 text: "3" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            key_num5 := Button { width: Fill height: 40 text: "4" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            key_num6 := Button { width: Fill height: 40 text: "5" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            key_num7 := Button { width: Fill height: 40 text: "6" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            key_num8 := Button { width: Fill height: 40 text: "7" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            key_num9 := Button { width: Fill height: 40 text: "8" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            key_num10 := Button { width: Fill height: 40 text: "9" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            key_num11 := Button { width: Fill height: 40 text: "0" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            key_num12 := Button { width: Fill height: 40 text: "-" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            key_num13 := Button { width: Fill height: 40 text: "=" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            key_backspace := Button { width: Fill height: 40 text: "⌫" draw_bg.color: #3159a8 draw_text.color: #ffffff draw_text.text_style.font_size: 11 }
+                                            key_num1 := AppButton { width: Fill height: 40 text: "`" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            key_num2 := AppButton { width: Fill height: 40 text: "1" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            key_num3 := AppButton { width: Fill height: 40 text: "2" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            key_num4 := AppButton { width: Fill height: 40 text: "3" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            key_num5 := AppButton { width: Fill height: 40 text: "4" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            key_num6 := AppButton { width: Fill height: 40 text: "5" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            key_num7 := AppButton { width: Fill height: 40 text: "6" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            key_num8 := AppButton { width: Fill height: 40 text: "7" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            key_num9 := AppButton { width: Fill height: 40 text: "8" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            key_num10 := AppButton { width: Fill height: 40 text: "9" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            key_num11 := AppButton { width: Fill height: 40 text: "0" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            key_num12 := AppButton { width: Fill height: 40 text: "-" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            key_num13 := AppButton { width: Fill height: 40 text: "=" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            key_backspace := AppButton { width: Fill height: 40 text: "⌫" draw_bg.color: #x9ee5ed draw_text.color: #x182b3c draw_text.text_style.font_size: 11 }
                                         }
 
                                         keyboard_qwerty_row := View {
                                             width: Fill height: 40 flow: Right spacing: 4
-                                            key_tab := Button { width: Fill height: 40 text: "Tab" draw_bg.color: #3159a8 draw_text.color: #ffffff draw_text.text_style.font_size: 10 }
-                                            key_q := Button { width: Fill height: 40 text: "Q" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            key_w := Button { width: Fill height: 40 text: "W" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            key_e := Button { width: Fill height: 40 text: "E" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            key_r := Button { width: Fill height: 40 text: "R" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            key_t := Button { width: Fill height: 40 text: "T" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            key_y := Button { width: Fill height: 40 text: "Y" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            key_u := Button { width: Fill height: 40 text: "U" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            key_i := Button { width: Fill height: 40 text: "I" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            key_o := Button { width: Fill height: 40 text: "O" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            key_p := Button { width: Fill height: 40 text: "P" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            key_bracket := Button { width: Fill height: 40 text: "[" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            key_bracket2 := Button { width: Fill height: 40 text: "]" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            key_enter1 := Button { width: Fill height: 40 text: "Enter" draw_bg.color: #3159a8 draw_text.color: #ffffff draw_text.text_style.font_size: 10 }
+                                            key_tab := AppButton { width: Fill height: 40 text: "Tab" draw_bg.color: #x9ee5ed draw_text.color: #x182b3c draw_text.text_style.font_size: 10 }
+                                            key_q := AppButton { width: Fill height: 40 text: "Q" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            key_w := AppButton { width: Fill height: 40 text: "W" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            key_e := AppButton { width: Fill height: 40 text: "E" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            key_r := AppButton { width: Fill height: 40 text: "R" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            key_t := AppButton { width: Fill height: 40 text: "T" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            key_y := AppButton { width: Fill height: 40 text: "Y" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            key_u := AppButton { width: Fill height: 40 text: "U" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            key_i := AppButton { width: Fill height: 40 text: "I" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            key_o := AppButton { width: Fill height: 40 text: "O" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            key_p := AppButton { width: Fill height: 40 text: "P" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            key_bracket := AppButton { width: Fill height: 40 text: "[" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            key_bracket2 := AppButton { width: Fill height: 40 text: "]" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            key_enter1 := AppButton { width: Fill height: 40 text: "Enter" draw_bg.color: #x9ee5ed draw_text.color: #x182b3c draw_text.text_style.font_size: 10 }
                                         }
 
                                         keyboard_home_row := View {
                                             width: Fill height: 40 flow: Right spacing: 4
-                                            key_caps := Button { width: Fill height: 40 text: "Caps" draw_bg.color: #3159a8 draw_text.color: #ffffff draw_text.text_style.font_size: 10 }
-                                            key_a := Button { width: Fill height: 40 text: "A" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            key_s := Button { width: Fill height: 40 text: "S" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            key_d := Button { width: Fill height: 40 text: "D" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            key_f := Button { width: Fill height: 40 text: "F" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            key_g := Button { width: Fill height: 40 text: "G" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            key_h := Button { width: Fill height: 40 text: "H" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            key_j := Button { width: Fill height: 40 text: "J" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            key_k := Button { width: Fill height: 40 text: "K" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            key_l := Button { width: Fill height: 40 text: "L" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            key_semicolon := Button { width: Fill height: 40 text: ";" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            key_quote := Button { width: Fill height: 40 text: "'" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            key_enter2 := Button { width: Fill height: 40 text: "↵" draw_bg.color: #3159a8 draw_text.color: #ffffff draw_text.text_style.font_size: 12 }
+                                            key_caps := AppButton { width: Fill height: 40 text: "Caps" draw_bg.color: #x9ee5ed draw_text.color: #x182b3c draw_text.text_style.font_size: 10 }
+                                            key_a := AppButton { width: Fill height: 40 text: "A" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            key_s := AppButton { width: Fill height: 40 text: "S" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            key_d := AppButton { width: Fill height: 40 text: "D" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            key_f := AppButton { width: Fill height: 40 text: "F" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            key_g := AppButton { width: Fill height: 40 text: "G" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            key_h := AppButton { width: Fill height: 40 text: "H" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            key_j := AppButton { width: Fill height: 40 text: "J" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            key_k := AppButton { width: Fill height: 40 text: "K" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            key_l := AppButton { width: Fill height: 40 text: "L" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            key_semicolon := AppButton { width: Fill height: 40 text: ";" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            key_quote := AppButton { width: Fill height: 40 text: "'" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            key_enter2 := AppButton { width: Fill height: 40 text: "↵" draw_bg.color: #x9ee5ed draw_text.color: #x182b3c draw_text.text_style.font_size: 12 }
                                         }
 
                                         keyboard_bottom_row := View {
                                             width: Fill height: 40 flow: Right spacing: 4
-                                            key_shift := Button { width: Fill height: 40 text: "Shift" draw_bg.color: #3159a8 draw_text.color: #ffffff draw_text.text_style.font_size: 10 }
-                                            key_z := Button { width: Fill height: 40 text: "Z" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            key_x := Button { width: Fill height: 40 text: "X" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            key_c := Button { width: Fill height: 40 text: "C" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            key_v := Button { width: Fill height: 40 text: "V" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            key_b := Button { width: Fill height: 40 text: "B" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            key_n := Button { width: Fill height: 40 text: "N" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            key_m := Button { width: Fill height: 40 text: "M" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            key_comma := Button { width: Fill height: 40 text: "," draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            key_period := Button { width: Fill height: 40 text: "." draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            key_slash := Button { width: Fill height: 40 text: "/" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            key_shift2 := Button { width: Fill height: 40 text: "Shift" draw_bg.color: #3159a8 draw_text.color: #ffffff draw_text.text_style.font_size: 10 }
+                                            key_shift := AppButton { width: Fill height: 40 text: "Shift" draw_bg.color: #x9ee5ed draw_text.color: #x182b3c draw_text.text_style.font_size: 10 }
+                                            key_z := AppButton { width: Fill height: 40 text: "Z" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            key_x := AppButton { width: Fill height: 40 text: "X" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            key_c := AppButton { width: Fill height: 40 text: "C" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            key_v := AppButton { width: Fill height: 40 text: "V" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            key_b := AppButton { width: Fill height: 40 text: "B" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            key_n := AppButton { width: Fill height: 40 text: "N" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            key_m := AppButton { width: Fill height: 40 text: "M" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            key_comma := AppButton { width: Fill height: 40 text: "," draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            key_period := AppButton { width: Fill height: 40 text: "." draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            key_slash := AppButton { width: Fill height: 40 text: "/" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            key_shift2 := AppButton { width: Fill height: 40 text: "Shift" draw_bg.color: #x9ee5ed draw_text.color: #x182b3c draw_text.text_style.font_size: 10 }
                                         }
 
                                         keyboard_modifier_row := View {
                                             width: Fill height: 40 flow: Right spacing: 4
-                                            key_ctrl := Button { width: Fill height: 40 text: "Ctrl" draw_bg.color: #3159a8 draw_text.color: #ffffff draw_text.text_style.font_size: 10 }
-                                            key_fn := Button { width: Fill height: 40 text: "Fn" draw_bg.color: #3159a8 draw_text.color: #ffffff draw_text.text_style.font_size: 10 }
-                                            key_alt := Button { width: Fill height: 40 text: "Alt" draw_bg.color: #3159a8 draw_text.color: #ffffff draw_text.text_style.font_size: 10 }
-                                            key_space := Button { width: Fill height: 40 text: "Space" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            key_alt2 := Button { width: Fill height: 40 text: "Alt" draw_bg.color: #3159a8 draw_text.color: #ffffff draw_text.text_style.font_size: 10 }
-                                            key_menu := Button { width: Fill height: 40 text: "Menu" draw_bg.color: #3159a8 draw_text.color: #ffffff draw_text.text_style.font_size: 10 }
-                                            key_ctrl2 := Button { width: Fill height: 40 text: "Ctrl" draw_bg.color: #3159a8 draw_text.color: #ffffff draw_text.text_style.font_size: 10 }
-                                            key_up := Button { width: Fill height: 40 text: "↑" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 13 }
-                                            key_down := Button { width: Fill height: 40 text: "↓" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 13 }
+                                            key_ctrl := AppButton { width: Fill height: 40 text: "Ctrl" draw_bg.color: #x9ee5ed draw_text.color: #x182b3c draw_text.text_style.font_size: 10 }
+                                            key_fn := AppButton { width: Fill height: 40 text: "Fn" draw_bg.color: #x9ee5ed draw_text.color: #x182b3c draw_text.text_style.font_size: 10 }
+                                            key_alt := AppButton { width: Fill height: 40 text: "Alt" draw_bg.color: #x9ee5ed draw_text.color: #x182b3c draw_text.text_style.font_size: 10 }
+                                            key_space := AppButton { width: Fill height: 40 text: "Space" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            key_alt2 := AppButton { width: Fill height: 40 text: "Alt" draw_bg.color: #x9ee5ed draw_text.color: #x182b3c draw_text.text_style.font_size: 10 }
+                                            key_menu := AppButton { width: Fill height: 40 text: "Menu" draw_bg.color: #x9ee5ed draw_text.color: #x182b3c draw_text.text_style.font_size: 10 }
+                                            key_ctrl2 := AppButton { width: Fill height: 40 text: "Ctrl" draw_bg.color: #x9ee5ed draw_text.color: #x182b3c draw_text.text_style.font_size: 10 }
+                                            key_up := AppButton { width: Fill height: 40 text: "↑" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 13 }
+                                            key_down := AppButton { width: Fill height: 40 text: "↓" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 13 }
                                         }
                                     }
                                 }
@@ -1068,7 +1123,7 @@ script_mod! {
                                         padding: 8
                                         show_bg: true
                                         draw_bg +: {
-                                            color: #x174b69
+                                            color: #xe6f7f9
                                             radius: 14.0
                                         }
 
@@ -1081,7 +1136,7 @@ script_mod! {
                                                 width: 32
                                                 height: 32
                                                 draw_icon +: {
-                                                    color: #a8d8ef
+                                                    color: #x00a7b8
                                                     svg: crate_resource("self:resources/mouse.svg")
                                                 }
                                             }
@@ -1098,7 +1153,7 @@ script_mod! {
                                                 height: 24
                                                 text: "^"
                                                 align: Align{ x: 0.5, y: 0.5 }
-                                                draw_text.color: #8fc4df
+                                                draw_text.color: #x00a7b8
                                                 draw_text.text_style.font_size: 16
                                             }
                                             scroll_track := View {
@@ -1106,14 +1161,14 @@ script_mod! {
                                                 height: Fill
                                                 margin: Inset{ left: 8, right: 8 }
                                                 show_bg: true
-                                                draw_bg +: { color: #x8fc4df }
+                                                draw_bg +: { color: #x7cd5df }
                                             }
                                             scroll_down := Label {
                                                 width: Fill
                                                 height: 24
                                                 text: "v"
                                                 align: Align{ x: 0.5, y: 0.5 }
-                                                draw_text.color: #8fc4df
+                                                draw_text.color: #x00a7b8
                                                 draw_text.text_style.font_size: 16
                                             }
                                         }
@@ -1126,34 +1181,34 @@ script_mod! {
                                         flow: Right
                                         spacing: 8
 
-                                        surface_left_click := Button {
+                                        surface_left_click := AppButton {
                                             width: Fill
                                             height: 52
                                             text: "Left click"
-                                            draw_bg.color: #287da7
-                                            draw_bg.color_hover: #3286b1
-                                            draw_bg.color_down: #1d5a7b
-                                            draw_text.color: #ffffff
+                                            draw_bg.color: #b7eaf0
+                                            draw_bg.color_hover: #x90dce5
+                                            draw_bg.color_down: #x63cbd6
+                                            draw_text.color: #x182b3c
                                             draw_text.text_style.font_size: 13
                                         }
-                                        surface_middle_click := Button {
+                                        surface_middle_click := AppButton {
                                             width: Fill
                                             height: 52
                                             text: "Middle click"
-                                            draw_bg.color: #287da7
-                                            draw_bg.color_hover: #3286b1
-                                            draw_bg.color_down: #1d5a7b
-                                            draw_text.color: #ffffff
+                                            draw_bg.color: #b7eaf0
+                                            draw_bg.color_hover: #x90dce5
+                                            draw_bg.color_down: #x63cbd6
+                                            draw_text.color: #x182b3c
                                             draw_text.text_style.font_size: 13
                                         }
-                                        surface_right_click := Button {
+                                        surface_right_click := AppButton {
                                             width: Fill
                                             height: 52
                                             text: "Right click"
-                                            draw_bg.color: #287da7
-                                            draw_bg.color_hover: #3286b1
-                                            draw_bg.color_down: #1d5a7b
-                                            draw_text.color: #ffffff
+                                            draw_bg.color: #b7eaf0
+                                            draw_bg.color_hover: #x90dce5
+                                            draw_bg.color_down: #x63cbd6
+                                            draw_text.color: #x182b3c
                                             draw_text.text_style.font_size: 13
                                         }
                                     }
@@ -1166,64 +1221,81 @@ script_mod! {
                                         spacing: 16
                                         padding: 20
                                         show_bg: true
-                                        draw_bg +: { color: #x191c23 }
+                                        draw_bg +: { color: #xf0f5f8 }
 
                                         gamepad_shoulders := View {
                                             width: Fill height: 52 flow: Right spacing: 10
-                                            gamepad_lb := Button { width: Fill height: 52 text: "LB" draw_bg.color: #292d37 draw_bg.color_hover: #363c49 draw_bg.color_down: #3159a8 draw_text.color: #e5e7ed draw_text.text_style.font_size: 15 }
-                                            gamepad_lt := Button { width: Fill height: 52 text: "LT" draw_bg.color: #292d37 draw_bg.color_hover: #363c49 draw_bg.color_down: #3159a8 draw_text.color: #e5e7ed draw_text.text_style.font_size: 15 }
-                                            gamepad_rb := Button { width: Fill height: 52 text: "RB" draw_bg.color: #292d37 draw_bg.color_hover: #363c49 draw_bg.color_down: #3159a8 draw_text.color: #e5e7ed draw_text.text_style.font_size: 15 }
-                                            gamepad_rt := Button { width: Fill height: 52 text: "RT" draw_bg.color: #292d37 draw_bg.color_hover: #363c49 draw_bg.color_down: #3159a8 draw_text.color: #e5e7ed draw_text.text_style.font_size: 15 }
+                                            gamepad_lb := AppButton { width: Fill height: 52 text: "LB" draw_bg.color: #eef3f7 draw_bg.color_hover: #dcebf0 draw_bg.color_down: #x9ee5ed draw_text.color: #x213246 draw_text.text_style.font_size: 15 }
+                                            gamepad_lt := AppButton { width: Fill height: 52 text: "LT" draw_bg.color: #eef3f7 draw_bg.color_hover: #dcebf0 draw_bg.color_down: #x9ee5ed draw_text.color: #x213246 draw_text.text_style.font_size: 15 }
+                                            gamepad_rb := AppButton { width: Fill height: 52 text: "RB" draw_bg.color: #eef3f7 draw_bg.color_hover: #dcebf0 draw_bg.color_down: #x9ee5ed draw_text.color: #x213246 draw_text.text_style.font_size: 15 }
+                                            gamepad_rt := AppButton { width: Fill height: 52 text: "RT" draw_bg.color: #eef3f7 draw_bg.color_hover: #dcebf0 draw_bg.color_down: #x9ee5ed draw_text.color: #x213246 draw_text.text_style.font_size: 15 }
                                         }
 
                                         gamepad_controls := View {
                                             width: Fill height: Fill flow: Right spacing: 10 align: Align{ y: 0.5 }
                                             gamepad_dpad := View {
                                                 width: Fill height: 200 flow: Down spacing: 6 align: Align{ x: 0.5, y: 0.5 }
-                                                gamepad_dpad_up := Button { width: 66 height: 56 text: "↑" draw_bg.color: #292d37 draw_bg.color_hover: #363c49 draw_bg.color_down: #3159a8 draw_text.color: #e5e7ed draw_text.text_style.font_size: 20 }
+                                                gamepad_dpad_up := AppButton { width: 66 height: 56 text: "↑" draw_bg.color: #eef3f7 draw_bg.color_hover: #dcebf0 draw_bg.color_down: #x9ee5ed draw_text.color: #x213246 draw_text.text_style.font_size: 20 }
                                                 gamepad_dpad_horizontal := View {
-                                                    width: Fill height: 56 flow: Right spacing: 6
-                                                    gamepad_dpad_left := Button { width: Fill height: 56 text: "←" draw_bg.color: #292d37 draw_bg.color_hover: #363c49 draw_bg.color_down: #3159a8 draw_text.color: #e5e7ed draw_text.text_style.font_size: 20 }
-                                                    gamepad_dpad_right := Button { width: Fill height: 56 text: "→" draw_bg.color: #292d37 draw_bg.color_hover: #363c49 draw_bg.color_down: #3159a8 draw_text.color: #e5e7ed draw_text.text_style.font_size: 20 }
+                                                    width: 204 height: 56 flow: Right spacing: 6
+                                                    gamepad_dpad_left := AppButton { width: 66 height: 56 text: "←" draw_bg.color: #eef3f7 draw_bg.color_hover: #dcebf0 draw_bg.color_down: #x9ee5ed draw_text.color: #x213246 draw_text.text_style.font_size: 20 }
+                                                    View { width: Fill height: Fill }
+                                                    gamepad_dpad_right := AppButton { width: 66 height: 56 text: "→" draw_bg.color: #eef3f7 draw_bg.color_hover: #dcebf0 draw_bg.color_down: #x9ee5ed draw_text.color: #x213246 draw_text.text_style.font_size: 20 }
                                                 }
-                                                gamepad_dpad_down := Button { width: 66 height: 56 text: "↓" draw_bg.color: #292d37 draw_bg.color_hover: #363c49 draw_bg.color_down: #3159a8 draw_text.color: #e5e7ed draw_text.text_style.font_size: 20 }
+                                                gamepad_dpad_down := AppButton { width: 66 height: 56 text: "↓" draw_bg.color: #eef3f7 draw_bg.color_hover: #dcebf0 draw_bg.color_down: #x9ee5ed draw_text.color: #x213246 draw_text.text_style.font_size: 20 }
                                             }
                                             gamepad_center_controls := View {
                                                 width: Fill height: 200 flow: Down spacing: 10 align: Align{ y: 0.5 }
                                                 gamepad_menu_row := View {
                                                     width: Fill height: 48 flow: Right spacing: 8
-                                                    gamepad_select := Button { width: Fill height: 48 text: "Select" draw_bg.color: #292d37 draw_bg.color_hover: #363c49 draw_bg.color_down: #3159a8 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                                    gamepad_home := Button { width: Fill height: 48 text: "Home" draw_bg.color: #292d37 draw_bg.color_hover: #363c49 draw_bg.color_down: #3159a8 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                                    gamepad_start := Button { width: Fill height: 48 text: "Start" draw_bg.color: #292d37 draw_bg.color_hover: #363c49 draw_bg.color_down: #3159a8 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
+                                                    gamepad_select := AppButton { width: Fill height: 48 text: "Select" draw_bg.color: #eef3f7 draw_bg.color_hover: #dcebf0 draw_bg.color_down: #x9ee5ed draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                                    gamepad_home := AppButton { width: Fill height: 48 text: "Home" draw_bg.color: #eef3f7 draw_bg.color_hover: #dcebf0 draw_bg.color_down: #x9ee5ed draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                                    gamepad_start := AppButton { width: Fill height: 48 text: "Start" draw_bg.color: #eef3f7 draw_bg.color_hover: #dcebf0 draw_bg.color_down: #x9ee5ed draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
                                                 }
                                                 gamepad_face_row := View {
-                                                    width: Fill height: Fill flow: Right spacing: 8
-                                                    gamepad_x := Button { width: Fill height: Fill text: "X" draw_bg.color: #3159a8 draw_bg.color_hover: #3b68c1 draw_bg.color_down: #284f9e draw_text.color: #ffffff draw_text.text_style.font_size: 20 }
-                                                    gamepad_y := Button { width: Fill height: Fill text: "Y" draw_bg.color: #a18324 draw_bg.color_hover: #b3912b draw_bg.color_down: #79611b draw_text.color: #ffffff draw_text.text_style.font_size: 20 }
-                                                    gamepad_a := Button { width: Fill height: Fill text: "A" draw_bg.color: #438844 draw_bg.color_hover: #529b53 draw_bg.color_down: #326833 draw_text.color: #ffffff draw_text.text_style.font_size: 20 }
-                                                    gamepad_b := Button { width: Fill height: Fill text: "B" draw_bg.color: #a13b3b draw_bg.color_hover: #b44b4b draw_bg.color_down: #7c2b2b draw_text.color: #ffffff draw_text.text_style.font_size: 20 }
+                                                    width: Fill height: Fill flow: Down spacing: 4
+                                                    gamepad_face_top := View {
+                                                        width: Fill height: Fill flow: Right
+                                                        View { width: Fill height: Fill }
+                                                        gamepad_y := AppButton { width: 48 height: Fill text: "Y" draw_bg.border_radius: 24 draw_bg.color: #dff5f7 draw_bg.color_hover: #b8eaf0 draw_bg.color_down: #x8edce4 draw_text.color: #x008e9f draw_text.text_style.font_size: 16 }
+                                                        View { width: Fill height: Fill }
+                                                    }
+                                                    gamepad_face_middle := View {
+                                                        width: Fill height: Fill flow: Right
+                                                        View { width: Fill height: Fill }
+                                                        gamepad_x := AppButton { width: 48 height: Fill text: "X" draw_bg.border_radius: 24 draw_bg.color: #dff5f7 draw_bg.color_hover: #b8eaf0 draw_bg.color_down: #x8edce4 draw_text.color: #x008e9f draw_text.text_style.font_size: 16 }
+                                                        View { width: 48 height: Fill }
+                                                        gamepad_b := AppButton { width: 48 height: Fill text: "B" draw_bg.border_radius: 24 draw_bg.color: #dff5f7 draw_bg.color_hover: #b8eaf0 draw_bg.color_down: #x8edce4 draw_text.color: #x008e9f draw_text.text_style.font_size: 16 }
+                                                        View { width: Fill height: Fill }
+                                                    }
+                                                    gamepad_face_bottom := View {
+                                                        width: Fill height: Fill flow: Right
+                                                        View { width: Fill height: Fill }
+                                                        gamepad_a := AppButton { width: 48 height: Fill text: "A" draw_bg.border_radius: 24 draw_bg.color: #dff5f7 draw_bg.color_hover: #b8eaf0 draw_bg.color_down: #x8edce4 draw_text.color: #x008e9f draw_text.text_style.font_size: 16 }
+                                                        View { width: Fill height: Fill }
+                                                    }
                                                 }
                                             }
                                         }
 
-                                        gamepad_status := Label { width: Fill height: 24 text: "Tap a control to send a Bluetooth gamepad press." draw_text.color: #9ba2b1 draw_text.text_style.font_size: 12 }
+                                        gamepad_status := Label { width: Fill height: 24 text: "Tap a control to send a Bluetooth gamepad press." draw_text.color: #x6b7c8c draw_text.text_style.font_size: 12 }
                                     }
 
                                     layout_surface_custom := View {
                                         width: Fill height: Fill visible: state.selected_layout_kind == "custom" flow: Down spacing: 12
-                                        padding: 16 show_bg: true draw_bg +: { color: #x1b2029 }
-                                        custom_surface_hint := Label { width: Fill height: Fit text: "YOUR CONTROLS   ·   Hold a button to send input" draw_text.color: #a8c9df draw_text.text_style.font_size: 11 }
+                                        padding: 16 show_bg: true draw_bg +: { color: #xf5f8fa }
+                                        custom_surface_hint := Label { width: Fill height: Fit text: "YOUR CONTROLS   ·   Hold a button to send input" draw_text.color: #x27818c draw_text.text_style.font_size: 11 }
                                         custom_surface_row_1 := View {
                                             width: Fill height: Fill flow: Right spacing: 12
-                                            custom_surface_1 := Button { width: Fill height: Fill text: "" draw_bg.color: #28496a draw_bg.color_hover: #355d80 draw_bg.color_down: #477da3 draw_text.color: #ffffff draw_text.text_style.font_size: 18 }
-                                            custom_surface_2 := Button { width: Fill height: Fill text: "" draw_bg.color: #35415a draw_bg.color_hover: #465675 draw_bg.color_down: #587397 draw_text.color: #ffffff draw_text.text_style.font_size: 18 }
-                                            custom_surface_3 := Button { width: Fill height: Fill text: "" draw_bg.color: #3a4b50 draw_bg.color_hover: #4a6268 draw_bg.color_down: #57828a draw_text.color: #ffffff draw_text.text_style.font_size: 18 }
+                                            custom_surface_1 := AppButton { width: Fill height: Fill text: "" draw_bg.color: #e8f7f8 draw_bg.color_hover: #caeff2 draw_bg.color_down: #a0dfe5 draw_text.color: #x182b3c draw_text.text_style.font_size: 18 }
+                                            custom_surface_2 := AppButton { width: Fill height: Fill text: "" draw_bg.color: #eef4f7 draw_bg.color_hover: #d6eef1 draw_bg.color_down: #a0dfe5 draw_text.color: #x182b3c draw_text.text_style.font_size: 18 }
+                                            custom_surface_3 := AppButton { width: Fill height: Fill text: "" draw_bg.color: #e8f7f8 draw_bg.color_hover: #caeff2 draw_bg.color_down: #a0dfe5 draw_text.color: #x182b3c draw_text.text_style.font_size: 18 }
                                         }
                                         custom_surface_row_2 := View {
                                             width: Fill height: Fill flow: Right spacing: 12
-                                            custom_surface_4 := Button { width: Fill height: Fill text: "" draw_bg.color: #3b405d draw_bg.color_hover: #515a7b draw_bg.color_down: #6779a6 draw_text.color: #ffffff draw_text.text_style.font_size: 18 }
-                                            custom_surface_5 := Button { width: Fill height: Fill text: "" draw_bg.color: #4a3d52 draw_bg.color_hover: #5d4b68 draw_bg.color_down: #80618a draw_text.color: #ffffff draw_text.text_style.font_size: 18 }
-                                            custom_surface_6 := Button { width: Fill height: Fill text: "" draw_bg.color: #4b4740 draw_bg.color_hover: #625c4e draw_bg.color_down: #8a795d draw_text.color: #ffffff draw_text.text_style.font_size: 18 }
+                                            custom_surface_4 := AppButton { width: Fill height: Fill text: "" draw_bg.color: #eef4f7 draw_bg.color_hover: #d6eef1 draw_bg.color_down: #a0dfe5 draw_text.color: #x182b3c draw_text.text_style.font_size: 18 }
+                                            custom_surface_5 := AppButton { width: Fill height: Fill text: "" draw_bg.color: #e8f7f8 draw_bg.color_hover: #caeff2 draw_bg.color_down: #a0dfe5 draw_text.color: #x182b3c draw_text.text_style.font_size: 18 }
+                                            custom_surface_6 := AppButton { width: Fill height: Fill text: "" draw_bg.color: #eef4f7 draw_bg.color_hover: #d6eef1 draw_bg.color_down: #a0dfe5 draw_text.color: #x182b3c draw_text.text_style.font_size: 18 }
                                         }
                                     }
 
@@ -1235,7 +1307,7 @@ script_mod! {
                                         spacing: if state.is_narrow { 3 } else { 6 }
                                         padding: if state.is_narrow { 5 } else { 10 }
                                         show_bg: true
-                                        draw_bg +: { color: #x191c23 }
+                                        draw_bg +: { color: #xf0f5f8 }
 
                                         landscape_keyboard_toolbar := View {
                                             width: Fill
@@ -1245,46 +1317,46 @@ script_mod! {
                                             spacing: 8
                                             align: Align{ y: 0.5 }
 
-                                            landscape_menu_toggle := Button {
+                                            landscape_menu_toggle := AppButton {
                                                 width: 42
                                                 height: 42
                                                 text: "☰"
-                                                draw_bg.color: #292d37
-                                                draw_bg.color_hover: #363c49
-                                                draw_text.color: #e5e7ed
+                                                draw_bg.color: #eef3f7
+                                                draw_bg.color_hover: #dcebf0
+                                                draw_text.color: #x213246
                                             }
 
                                             landscape_keyboard_title := Label {
                                                 width: Fit
                                                 text: "Mouse / Keyboard"
-                                                draw_text.color: #f4f5f8
+                                                draw_text.color: #x18263a
                                                 draw_text.text_style.font_size: 22
                                             }
 
                                             landscape_toolbar_spacer := View { width: Fill height: 1 }
 
-                                            landscape_keyboard_toggle := Button {
+                                            landscape_keyboard_toggle := AppButton {
                                                 width: 42
                                                 height: 42
                                                 text: ""
                                                 icon_walk: Walk{ width: 20, height: 20 }
                                                 draw_icon +: {
-                                                    color: #a8d8ef
+                                                    color: #x00a7b8
                                                     svg: crate_resource("self:resources/keyboard.svg")
                                                 }
-                                                draw_bg.color: #292d37
+                                                draw_bg.color: #eef3f7
                                             }
 
-                                            landscape_settings_button := Button {
+                                            landscape_settings_button := AppButton {
                                                 width: 42
                                                 height: 42
                                                 text: ""
                                                 icon_walk: Walk{ width: 20, height: 20 }
                                                 draw_icon +: {
-                                                    color: #a8d8ef
+                                                    color: #x00a7b8
                                                     svg: crate_resource("self:resources/settings.svg")
                                                 }
-                                                draw_bg.color: #292d37
+                                                draw_bg.color: #eef3f7
                                             }
                                         }
 
@@ -1294,108 +1366,108 @@ script_mod! {
                                             visible: !state.is_narrow
                                             flow: Right
                                             spacing: if state.is_narrow { 2 } else { 4 }
-                                            sk_esc := Button { width: Fill height: if state.is_narrow { 26 } else { 34 } text: "Esc" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 10 }
-                                            sk_f1 := Button { width: Fill height: if state.is_narrow { 26 } else { 34 } text: "F1" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 10 }
-                                            sk_f2 := Button { width: Fill height: if state.is_narrow { 26 } else { 34 } text: "F2" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 10 }
-                                            sk_f3 := Button { width: Fill height: if state.is_narrow { 26 } else { 34 } text: "F3" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 10 }
-                                            sk_f4 := Button { width: Fill height: if state.is_narrow { 26 } else { 34 } text: "F4" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 10 }
-                                            sk_f5 := Button { width: Fill height: if state.is_narrow { 26 } else { 34 } text: "F5" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 10 }
-                                            sk_f6 := Button { width: Fill height: if state.is_narrow { 26 } else { 34 } text: "F6" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 10 }
-                                            sk_f7 := Button { width: Fill height: if state.is_narrow { 26 } else { 34 } text: "F7" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 10 }
-                                            sk_f8 := Button { width: Fill height: if state.is_narrow { 26 } else { 34 } text: "F8" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 10 }
-                                            sk_f9 := Button { width: Fill height: if state.is_narrow { 26 } else { 34 } text: "F9" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 10 }
-                                            sk_f10 := Button { width: Fill height: if state.is_narrow { 26 } else { 34 } text: "F10" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 10 }
-                                            sk_f11 := Button { width: Fill height: if state.is_narrow { 26 } else { 34 } text: "F11" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 10 }
-                                            sk_f12 := Button { width: Fill height: if state.is_narrow { 26 } else { 34 } text: "F12" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 10 }
+                                            sk_esc := AppButton { width: Fill height: if state.is_narrow { 26 } else { 34 } text: "Esc" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 10 }
+                                            sk_f1 := AppButton { width: Fill height: if state.is_narrow { 26 } else { 34 } text: "F1" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 10 }
+                                            sk_f2 := AppButton { width: Fill height: if state.is_narrow { 26 } else { 34 } text: "F2" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 10 }
+                                            sk_f3 := AppButton { width: Fill height: if state.is_narrow { 26 } else { 34 } text: "F3" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 10 }
+                                            sk_f4 := AppButton { width: Fill height: if state.is_narrow { 26 } else { 34 } text: "F4" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 10 }
+                                            sk_f5 := AppButton { width: Fill height: if state.is_narrow { 26 } else { 34 } text: "F5" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 10 }
+                                            sk_f6 := AppButton { width: Fill height: if state.is_narrow { 26 } else { 34 } text: "F6" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 10 }
+                                            sk_f7 := AppButton { width: Fill height: if state.is_narrow { 26 } else { 34 } text: "F7" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 10 }
+                                            sk_f8 := AppButton { width: Fill height: if state.is_narrow { 26 } else { 34 } text: "F8" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 10 }
+                                            sk_f9 := AppButton { width: Fill height: if state.is_narrow { 26 } else { 34 } text: "F9" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 10 }
+                                            sk_f10 := AppButton { width: Fill height: if state.is_narrow { 26 } else { 34 } text: "F10" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 10 }
+                                            sk_f11 := AppButton { width: Fill height: if state.is_narrow { 26 } else { 34 } text: "F11" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 10 }
+                                            sk_f12 := AppButton { width: Fill height: if state.is_narrow { 26 } else { 34 } text: "F12" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 10 }
                                         }
 
                                         surface_keyboard_number := View {
                                             width: Fill height: if state.is_narrow { 32 } else { 40 } flow: Right spacing: if state.is_narrow { 2 } else { 4 }
-                                            sn_1 := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "`" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            sn_2 := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "1" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            sn_3 := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "2" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            sn_4 := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "3" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            sn_5 := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "4" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            sn_6 := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "5" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            sn_7 := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "6" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            sn_8 := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "7" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            sn_9 := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "8" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            sn_10 := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "9" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            sn_11 := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "0" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            sn_backspace := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "⌫" draw_bg.color: #3159a8 draw_text.color: #ffffff draw_text.text_style.font_size: 11 }
+                                            sn_1 := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "`" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            sn_2 := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "1" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            sn_3 := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "2" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            sn_4 := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "3" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            sn_5 := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "4" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            sn_6 := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "5" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            sn_7 := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "6" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            sn_8 := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "7" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            sn_9 := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "8" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            sn_10 := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "9" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            sn_11 := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "0" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            sn_backspace := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "⌫" draw_bg.color: #x9ee5ed draw_text.color: #x182b3c draw_text.text_style.font_size: 11 }
                                         }
 
                                         surface_keyboard_symbols := View {
                                             width: Fill height: if state.is_narrow { 32 } else { 40 } flow: Right spacing: if state.is_narrow { 2 } else { 4 }
-                                            ss_minus := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "-" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            ss_equal := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "=" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            ss_open_bracket := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "[" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            ss_close_bracket := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "]" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            ss_backslash := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "\\" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            ss_semicolon := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: ";" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            ss_quote := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "'" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            ss_comma := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "," draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            ss_period := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "." draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
-                                            ss_slash := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "/" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 11 }
+                                            ss_minus := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "-" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            ss_equal := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "=" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            ss_open_bracket := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "[" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            ss_close_bracket := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "]" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            ss_backslash := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "\\" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            ss_semicolon := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: ";" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            ss_quote := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "'" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            ss_comma := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "," draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            ss_period := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "." draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
+                                            ss_slash := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "/" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 11 }
                                         }
 
                                         surface_keyboard_top := View {
                                             width: Fill height: if state.is_narrow { 32 } else { 40 } flow: Right spacing: if state.is_narrow { 2 } else { 4 }
-                                            st_tab := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "Tab" draw_bg.color: #3159a8 draw_text.color: #ffffff draw_text.text_style.font_size: 10 }
-                                            st_q := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "Q" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            st_w := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "W" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            st_e := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "E" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            st_r := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "R" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            st_t := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "T" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            st_y := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "Y" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            st_u := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "U" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            st_i := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "I" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            st_o := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "O" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            st_p := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "P" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            st_enter := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "Enter" draw_bg.color: #3159a8 draw_text.color: #ffffff draw_text.text_style.font_size: 10 }
+                                            st_tab := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "Tab" draw_bg.color: #x9ee5ed draw_text.color: #x182b3c draw_text.text_style.font_size: 10 }
+                                            st_q := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "Q" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            st_w := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "W" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            st_e := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "E" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            st_r := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "R" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            st_t := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "T" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            st_y := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "Y" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            st_u := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "U" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            st_i := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "I" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            st_o := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "O" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            st_p := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "P" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            st_enter := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "Enter" draw_bg.color: #x9ee5ed draw_text.color: #x182b3c draw_text.text_style.font_size: 10 }
                                         }
 
                                         surface_keyboard_home := View {
                                             width: Fill height: if state.is_narrow { 32 } else { 40 } flow: Right spacing: if state.is_narrow { 2 } else { 4 }
-                                            sh_caps := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "Caps" draw_bg.color: #3159a8 draw_text.color: #ffffff draw_text.text_style.font_size: 10 }
-                                            sh_a := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "A" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            sh_s := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "S" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            sh_d := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "D" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            sh_f := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "F" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            sh_g := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "G" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            sh_h := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "H" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            sh_j := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "J" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            sh_k := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "K" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            sh_l := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "L" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            sh_enter := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "Ent" draw_bg.color: #3159a8 draw_text.color: #ffffff draw_text.text_style.font_size: 12 }
+                                            sh_caps := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "Caps" draw_bg.color: #x9ee5ed draw_text.color: #x182b3c draw_text.text_style.font_size: 10 }
+                                            sh_a := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "A" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            sh_s := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "S" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            sh_d := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "D" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            sh_f := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "F" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            sh_g := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "G" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            sh_h := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "H" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            sh_j := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "J" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            sh_k := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "K" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            sh_l := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "L" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            sh_enter := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "Ent" draw_bg.color: #x9ee5ed draw_text.color: #x182b3c draw_text.text_style.font_size: 12 }
                                         }
 
                                         surface_keyboard_bottom := View {
                                             width: Fill height: if state.is_narrow { 32 } else { 40 } flow: Right spacing: if state.is_narrow { 2 } else { 4 }
-                                            sb_shift := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "Shift" draw_bg.color: #3159a8 draw_text.color: #ffffff draw_text.text_style.font_size: 10 }
-                                            sb_z := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "Z" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            sb_x := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "X" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            sb_c := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "C" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            sb_v := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "V" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            sb_b := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "B" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            sb_n := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "N" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            sb_m := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "M" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            sb_shift2 := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "Shift" draw_bg.color: #3159a8 draw_text.color: #ffffff draw_text.text_style.font_size: 10 }
+                                            sb_shift := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "Shift" draw_bg.color: #x9ee5ed draw_text.color: #x182b3c draw_text.text_style.font_size: 10 }
+                                            sb_z := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "Z" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            sb_x := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "X" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            sb_c := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "C" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            sb_v := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "V" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            sb_b := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "B" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            sb_n := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "N" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            sb_m := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "M" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            sb_shift2 := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "Shift" draw_bg.color: #x9ee5ed draw_text.color: #x182b3c draw_text.text_style.font_size: 10 }
                                         }
 
                                         surface_keyboard_modifiers := View {
                                             width: Fill height: if state.is_narrow { 32 } else { 40 } flow: Right spacing: if state.is_narrow { 2 } else { 4 }
-                                            sm_ctrl := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "Ctrl" draw_bg.color: #3159a8 draw_text.color: #ffffff draw_text.text_style.font_size: 10 }
-                                            sm_fn := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "Fn" draw_bg.color: #3159a8 draw_text.color: #ffffff draw_text.text_style.font_size: 10 }
-                                            sm_alt := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "Alt" draw_bg.color: #3159a8 draw_text.color: #ffffff draw_text.text_style.font_size: 10 }
-                                            sm_space := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "Space" draw_bg.color: #292d37 draw_text.color: #e5e7ed draw_text.text_style.font_size: 12 }
-                                            sm_alt2 := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "Alt" draw_bg.color: #3159a8 draw_text.color: #ffffff draw_text.text_style.font_size: 10 }
-                                            sm_ctrl2 := Button { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "Ctrl" draw_bg.color: #3159a8 draw_text.color: #ffffff draw_text.text_style.font_size: 10 }
+                                            sm_ctrl := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "Ctrl" draw_bg.color: #x9ee5ed draw_text.color: #x182b3c draw_text.text_style.font_size: 10 }
+                                            sm_fn := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "Fn" draw_bg.color: #x9ee5ed draw_text.color: #x182b3c draw_text.text_style.font_size: 10 }
+                                            sm_alt := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "Alt" draw_bg.color: #x9ee5ed draw_text.color: #x182b3c draw_text.text_style.font_size: 10 }
+                                            sm_space := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "Space" draw_bg.color: #eef3f7 draw_text.color: #x213246 draw_text.text_style.font_size: 12 }
+                                            sm_alt2 := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "Alt" draw_bg.color: #x9ee5ed draw_text.color: #x182b3c draw_text.text_style.font_size: 10 }
+                                            sm_ctrl2 := AppButton { width: Fill height: if state.is_narrow { 32 } else { 40 } text: "Ctrl" draw_bg.color: #x9ee5ed draw_text.color: #x182b3c draw_text.text_style.font_size: 10 }
                                         }
                                     }
                                 }
 
-                                layout_settings_panel := View {
+                                layout_settings_panel := RoundedView {
                                     width: Fill
                                     height: Fit
                                     visible: state.current_screen == "layout_settings"
@@ -1403,12 +1475,12 @@ script_mod! {
                                     spacing: 8
                                     padding: 12
                                     show_bg: true
-                                    draw_bg +: { color: #x222630 }
+                                    draw_bg +: { color: #xffffffff radius: 12.0 }
 
                                     layout_settings_name := Label {
                                         width: Fill
                                         text: "Touchpad settings"
-                                        draw_text.color: #f4f5f8
+                                        draw_text.color: #x18263a
                                         draw_text.text_style.font_size: 16
                                     }
 
@@ -1419,15 +1491,15 @@ script_mod! {
                                         flow: Down
                                         spacing: 12
 
-                                        pointer_speed_label := Label { width: Fill text: "Pointer speed" draw_text.color: #c2c9d4 draw_text.text_style.font_size: 14 }
+                                        pointer_speed_label := Label { width: Fill text: "Pointer speed" draw_text.color: #x576b7d draw_text.text_style.font_size: 14 }
                                         pointer_speed_choices := View {
                                             width: Fill height: Fit flow: Right spacing: 8
-                                            pointer_slow := Button { width: Fill height: 42 text: "Slow" draw_bg.color: #292d37 draw_bg.color_hover: #363c49 draw_text.color: #e5e7ed }
-                                            pointer_standard := Button { width: Fill height: 42 text: "Standard" draw_bg.color: #3159a8 draw_bg.color_hover: #3b68c1 draw_text.color: #ffffff }
-                                            pointer_fast := Button { width: Fill height: 42 text: "Fast" draw_bg.color: #292d37 draw_bg.color_hover: #363c49 draw_text.color: #e5e7ed }
+                                            pointer_slow := AppButton { width: Fill height: 42 text: "Slow" draw_bg.color: #eef3f7 draw_bg.color_hover: #dcebf0 draw_text.color: #x213246 }
+                                            pointer_standard := AppButton { width: Fill height: 42 text: "Standard" draw_bg.color: #x9ee5ed draw_bg.color_hover: #x7bd9e3 draw_text.color: #x182b3c }
+                                            pointer_fast := AppButton { width: Fill height: 42 text: "Fast" draw_bg.color: #eef3f7 draw_bg.color_hover: #dcebf0 draw_text.color: #x213246 }
                                         }
-                                        touchpad_tap_toggle := Button { width: Fill height: 42 text: "Tap to click   ·   On" draw_bg.color: #292d37 draw_bg.color_hover: #363c49 draw_text.color: #e5e7ed }
-                                        touchpad_scroll_toggle := Button { width: Fill height: 42 text: "Natural scrolling   ·   Off" draw_bg.color: #292d37 draw_bg.color_hover: #363c49 draw_text.color: #e5e7ed }
+                                        touchpad_tap_toggle := AppButton { width: Fill height: 42 text: "Tap to click   ·   On" draw_bg.color: #eef3f7 draw_bg.color_hover: #dcebf0 draw_text.color: #x213246 }
+                                        touchpad_scroll_toggle := AppButton { width: Fill height: 42 text: "Natural scrolling   ·   Off" draw_bg.color: #eef3f7 draw_bg.color_hover: #dcebf0 draw_text.color: #x213246 }
                                     }
 
                                     layout_keyboard_settings := View {
@@ -1437,142 +1509,234 @@ script_mod! {
                                         flow: Down
                                         spacing: 12
 
-                                        keyboard_layout_label := Label { width: Fill text: "Keyboard layout" draw_text.color: #c2c9d4 draw_text.text_style.font_size: 14 }
-                                        keyboard_qwerty_choice := Button { width: Fill height: 42 text: "QWERTY   ·   English (US)" draw_bg.color: #292d37 draw_bg.color_hover: #363c49 draw_text.color: #e5e7ed }
-                                        keyboard_repeat_toggle := Button { width: Fill height: 42 text: "Key repeat   ·   On" draw_bg.color: #292d37 draw_bg.color_hover: #363c49 draw_text.color: #e5e7ed }
+                                        keyboard_layout_label := Label { width: Fill text: "Keyboard layout" draw_text.color: #x576b7d draw_text.text_style.font_size: 14 }
+                                        keyboard_qwerty_choice := AppButton { width: Fill height: 42 text: "QWERTY   ·   English (US)" draw_bg.color: #eef3f7 draw_bg.color_hover: #dcebf0 draw_text.color: #x213246 }
+                                        keyboard_repeat_toggle := AppButton { width: Fill height: 42 text: "Key repeat   ·   On" draw_bg.color: #eef3f7 draw_bg.color_hover: #dcebf0 draw_text.color: #x213246 }
                                     }
 
                                     layout_custom_settings := View {
                                         width: Fill height: Fit visible: state.selected_layout_kind == "custom" flow: Down spacing: 6
-                                        custom_editor_intro := Label { width: Fill text: "Choose a control, then set its action and optional hardware button." draw_text.color: #aab6c5 draw_text.text_style.font_size: 12 }
+                                        custom_editor_intro := Label { width: Fill text: "Choose a control, then set its action and optional hardware button." draw_text.color: #x66798b draw_text.text_style.font_size: 12 }
                                         custom_editor_columns := View {
                                             width: Fill height: Fit flow: if state.is_narrow { Down } else { Right } spacing: 14
                                             custom_editor_list := View {
                                                 width: Fill height: Fit flow: Down spacing: 6
                                                 custom_editor_row_1 := View {
                                                     width: Fill height: 32 flow: Right spacing: 6
-                                                    custom_edit_1 := Button { width: Fill height: 32 text: "" draw_bg.color: #30445b draw_text.color: #ffffff }
-                                                    custom_edit_2 := Button { width: Fill height: 32 text: "" draw_bg.color: #30445b draw_text.color: #ffffff }
-                                                    custom_edit_3 := Button { width: Fill height: 32 text: "" draw_bg.color: #30445b draw_text.color: #ffffff }
+                                                    custom_edit_1 := AppButton { width: Fill height: 32 text: "" draw_bg.color: #e5f5f7 draw_text.color: #x182b3c }
+                                                    custom_edit_2 := AppButton { width: Fill height: 32 text: "" draw_bg.color: #e5f5f7 draw_text.color: #x182b3c }
+                                                    custom_edit_3 := AppButton { width: Fill height: 32 text: "" draw_bg.color: #e5f5f7 draw_text.color: #x182b3c }
                                                 }
                                                 custom_editor_row_2 := View {
                                                     width: Fill height: 32 flow: Right spacing: 6
-                                                    custom_edit_4 := Button { width: Fill height: 32 text: "" draw_bg.color: #30445b draw_text.color: #ffffff }
-                                                    custom_edit_5 := Button { width: Fill height: 32 text: "" draw_bg.color: #30445b draw_text.color: #ffffff }
-                                                    custom_edit_6 := Button { width: Fill height: 32 text: "" draw_bg.color: #30445b draw_text.color: #ffffff }
+                                                    custom_edit_4 := AppButton { width: Fill height: 32 text: "" draw_bg.color: #e5f5f7 draw_text.color: #x182b3c }
+                                                    custom_edit_5 := AppButton { width: Fill height: 32 text: "" draw_bg.color: #e5f5f7 draw_text.color: #x182b3c }
+                                                    custom_edit_6 := AppButton { width: Fill height: 32 text: "" draw_bg.color: #e5f5f7 draw_text.color: #x182b3c }
                                                 }
                                                 custom_editor_manage := View {
                                                     width: Fill height: 32 flow: Right spacing: 6
-                                                    custom_add := Button { width: Fill height: 32 text: "+ Add button" draw_bg.color: #3159a8 draw_text.color: #ffffff }
-                                                    custom_delete := Button { width: Fill height: 32 text: "Remove" draw_bg.color: #50323a draw_text.color: #ffffff }
+                                                    custom_add := AppButton { width: Fill height: 32 text: "+ Add button" draw_bg.color: #x9ee5ed draw_text.color: #x182b3c }
+                                                    custom_delete := AppButton { width: Fill height: 32 text: "Remove" draw_bg.color: #fce8e8 draw_text.color: #x182b3c }
                                                 }
                                                 custom_editor_order := View {
                                                     width: Fill height: 32 flow: Right spacing: 6
-                                                    custom_move_left := Button { width: Fill height: 32 text: "Move left" draw_bg.color: #292d37 draw_text.color: #e5e7ed }
-                                                    custom_move_right := Button { width: Fill height: 32 text: "Move right" draw_bg.color: #292d37 draw_text.color: #e5e7ed }
+                                                    custom_move_left := AppButton { width: Fill height: 32 text: "Move left" draw_bg.color: #eef3f7 draw_text.color: #x213246 }
+                                                    custom_move_right := AppButton { width: Fill height: 32 text: "Move right" draw_bg.color: #eef3f7 draw_text.color: #x213246 }
                                                 }
                                             }
                                             custom_editor_details := View {
                                                 width: Fill height: Fit flow: Down spacing: 6
                                                 custom_editor_name := View {
                                                     width: Fill height: 32 flow: Right spacing: 6
-                                                    custom_label_input := TextInput { width: Fill height: 32 empty_text: "Button label" }
-                                                    custom_label_save := Button { width: 90 height: 32 text: "Set label" draw_bg.color: #3159a8 draw_text.color: #ffffff }
+                                                    custom_label_input := AppTextInput { width: Fill height: 32 empty_text: "Button label" }
+                                                    custom_label_save := AppButton { width: 90 height: 32 text: "Set label" draw_bg.color: #x9ee5ed draw_text.color: #x182b3c }
                                                 }
                                                 custom_editor_groups := View {
                                                     width: Fill height: 32 flow: Right spacing: 4
-                                                    custom_group_keyboard := Button { width: Fill height: 32 text: "Keys" draw_bg.color: #293b50 draw_text.color: #e8f4ff }
-                                                    custom_group_volume := Button { width: Fill height: 32 text: "Volume" draw_bg.color: #293b50 draw_text.color: #e8f4ff }
-                                                    custom_group_gamepad := Button { width: Fill height: 32 text: "Pad" draw_bg.color: #293b50 draw_text.color: #e8f4ff }
-                                                    custom_group_mouse := Button { width: Fill height: 32 text: "Mouse" draw_bg.color: #293b50 draw_text.color: #e8f4ff }
-                                                    custom_group_bluetooth := Button { width: Fill height: 32 text: "BT" draw_bg.color: #293b50 draw_text.color: #e8f4ff }
+                                                    custom_group_keyboard := AppButton { width: Fill height: 32 text: "Keys" draw_bg.color: #e5f3f5 draw_text.color: #x164e5a }
+                                                    custom_group_volume := AppButton { width: Fill height: 32 text: "Volume" draw_bg.color: #e5f3f5 draw_text.color: #x164e5a }
+                                                    custom_group_gamepad := AppButton { width: Fill height: 32 text: "Pad" draw_bg.color: #e5f3f5 draw_text.color: #x164e5a }
+                                                    custom_group_mouse := AppButton { width: Fill height: 32 text: "Mouse" draw_bg.color: #e5f3f5 draw_text.color: #x164e5a }
+                                                    custom_group_bluetooth := AppButton { width: Fill height: 32 text: "BT" draw_bg.color: #e5f3f5 draw_text.color: #x164e5a }
                                                 }
                                                 custom_editor_action := View {
                                                     width: Fill height: 32 flow: Right spacing: 6
-                                                    custom_action_previous := Button { width: 44 height: 32 text: "‹" draw_bg.color: #292d37 draw_text.color: #ffffff draw_text.text_style.font_size: 16 }
-                                                    custom_action_label := Label { width: Fill height: 32 text: "Output" align: Align{ x: 0.5, y: 0.5 } draw_text.color: #e8f4ff draw_text.text_style.font_size: 14 }
-                                                    custom_action_next := Button { width: 44 height: 32 text: "›" draw_bg.color: #292d37 draw_text.color: #ffffff draw_text.text_style.font_size: 16 }
+                                                    custom_action_previous := AppButton { width: 44 height: 32 text: "‹" draw_bg.color: #eef3f7 draw_text.color: #x182b3c draw_text.text_style.font_size: 16 }
+                                                    custom_action_label := Label { width: Fill height: 32 text: "Output" align: Align{ x: 0.5, y: 0.5 } draw_text.color: #x164e5a draw_text.text_style.font_size: 14 }
+                                                    custom_action_next := AppButton { width: 44 height: 32 text: "›" draw_bg.color: #eef3f7 draw_text.color: #x182b3c draw_text.text_style.font_size: 16 }
                                                 }
                                                 custom_editor_hardware := View {
                                                     width: Fill height: 32 flow: Right spacing: 6
-                                                    custom_learn := Button { width: Fill height: 32 text: "Assign hardware button" draw_bg.color: #3159a8 draw_text.color: #ffffff }
-                                                    custom_unbind := Button { width: 70 height: 32 text: "Clear" draw_bg.color: #292d37 draw_text.color: #e5e7ed }
+                                                    custom_learn := AppButton { width: Fill height: 32 text: "Assign hardware button" draw_bg.color: #x9ee5ed draw_text.color: #x182b3c }
+                                                    custom_unbind := AppButton { width: 70 height: 32 text: "Clear" draw_bg.color: #eef3f7 draw_text.color: #x213246 }
                                                 }
-                                                custom_editor_status := Label { width: Fill height: Fit text: "Changes are saved on this device." draw_text.color: #aab6c5 draw_text.text_style.font_size: 12 }
+                                                custom_editor_status := Label { width: Fill height: Fit text: "Changes are saved on this device." draw_text.color: #x66798b draw_text.text_style.font_size: 12 }
                                             }
                                         }
                                     }
                                 }
                                 }
+                                bottom_navigation := View {
+                                    width: Fill height: 42 flow: Right spacing: 8
+                                    visible: state.current_screen != "layout_surface" && state.current_screen != "layout_settings"
+                                    bottom_devices := AppButton { width: Fill height: 42 text: "Devices" icon_walk: Walk{ width: 16 height: 16 } draw_icon +: { color: #x00a7b8 svg: crate_resource("self:resources/bluetooth.svg") } draw_bg.color: if state.current_screen == "devices" { #c9f2f5 } else { #eef3f7 } draw_text.color: #x164e5a }
+                                    bottom_layouts := AppButton { width: Fill height: 42 text: "Layouts" icon_walk: Walk{ width: 16 height: 16 } draw_icon +: { color: #x00a7b8 svg: crate_resource("self:resources/touchpad.svg") } draw_bg.color: if state.current_screen == "layouts" { #c9f2f5 } else { #eef3f7 } draw_text.color: #x164e5a }
+                                }
                             }
 
-                            mobile_backdrop := Button {
+                            mobile_backdrop := AppButton {
                                 width: Fill
                                 height: Fill
                                 visible: !state.sidebar_collapsed
                                 text: ""
+                                draw_bg.border_radius: 0.0
                                 draw_bg.color: #0009
                             }
 
-                            sidebar := View {
-                                width: 280
+                            sidebar := SolidView {
+                                width: if state.is_narrow { 304 } else { 320 }
                                 height: Fill
                                 visible: !state.sidebar_collapsed
                                 flow: Down
-                                spacing: 10
-                                padding: 14
+                                spacing: 0
+                                padding: 0
                                 show_bg: true
-                                draw_bg +: { color: #x20232b }
+                                draw_bg +: { color: #xffffffff }
 
-                                app_brand := Label {
+                                sidebar_header := SolidView {
                                     width: Fill
-                                    text: "OpenWASD"
-                                    draw_text.color: #f3f4f7
-                                    draw_text.text_style.font_size: 22
+                                    height: 112
+                                    flow: Right
+                                    spacing: 12
+                                    padding: Inset{ left: 20 right: 12 }
+                                    align: Align{ y: 0.5 }
+                                    show_bg: true
+                                    draw_bg +: { color: #x164e5a }
+
+                                    sidebar_brand := View {
+                                        width: Fill
+                                        height: Fit
+                                        flow: Down
+                                        spacing: 4
+                                        app_brand := Label {
+                                            width: Fill
+                                            text: "OpenWASD"
+                                            draw_text.color: #xffffffff
+                                            draw_text.text_style.font_size: 21
+                                        }
+                                        sidebar_tagline := Label {
+                                            width: Fill
+                                            text: "Input workspace"
+                                            draw_text.color: #xd2eef0
+                                            draw_text.text_style.font_size: 12
+                                        }
+                                    }
+
+                                    sidebar_toggle := AppButton {
+                                        width: 38
+                                        height: 38
+                                        text: "×"
+                                        draw_bg.color: #x2b6872
+                                        draw_bg.color_hover: #x3c7881
+                                        draw_bg.color_down: #x0b3d47
+                                        draw_text.color: #xffffffff
+                                        draw_text.text_style.font_size: 20
+                                    }
                                 }
 
-                                sidebar_toggle := Button {
-                                    width: Fill
-                                    height: 40
-                                    text: "×   Close menu"
-                                    draw_bg.color: #292d37
-                                    draw_bg.color_hover: #363c49
-                                    draw_bg.color_down: #414959
-                                    draw_text.color: #e5e7ed
-                                    draw_text.text_style.font_size: 13
-                                }
-
-                                nav_devices := Button {
-                                    width: Fill
-                                    height: 44
-                                    text: "Devices"
-                                    draw_bg.color: if state.current_screen == "devices" { #3159a8 } else { #20232b }
-                                    draw_bg.color_hover: #303746
-                                    draw_bg.color_down: #3b4659
-                                    draw_text.color: #ffffff
-                                    draw_text.text_style.font_size: 14
-                                }
-
-                                nav_layouts := Button {
-                                    width: Fill
-                                    height: 44
-                                    text: "Layouts"
-                                    draw_bg.color: if state.current_screen == "layouts" { #3159a8 } else { #20232b }
-                                    draw_bg.color_hover: #303746
-                                    draw_bg.color_down: #3b4659
-                                    draw_text.color: #ffffff
-                                    draw_text.text_style.font_size: 14
-                                }
-
-                                sidebar_spacer := View {
+                                sidebar_body := ScrollYView {
                                     width: Fill
                                     height: Fill
+                                    scroll_bars: ScrollBars {
+                                        show_scroll_x: false
+                                        show_scroll_y: true
+                                        scroll_bar_y.drag_scrolling: true
+                                    }
+                                    flow: Down
+                                    spacing: 0
+                                    padding: Inset{ top: 8, bottom: 8, left: 10, right: 10 }
+
+                                    sidebar_workspace_label := Label {
+                                        width: Fill
+                                        height: 34
+                                        padding: Inset{ left: 18 }
+                                        align: Align{ y: 0.5 }
+                                        text: "General"
+                                        draw_text.color: #x718597
+                                        draw_text.text_style.font_size: 11
+                                    }
+
+                                    nav_dashboard := AppButton {
+                                        width: Fill
+                                        height: 48
+                                        align: Align{ x: 0.0, y: 0.5 }
+                                        padding: Inset{ left: 16, right: 12 }
+                                        icon_walk: Walk{ width: 19, height: 19 }
+                                        draw_icon +: { color: #x00a7b8 svg: crate_resource("self:resources/home.svg") }
+                                        text: "Dashboard"
+                                        draw_bg.color: if state.current_screen == "dashboard" { #xe3f6f7 } else { #x0000 }
+                                        draw_bg.color_hover: #xeaf4f6
+                                        draw_bg.color_down: #xd6eef0
+                                        draw_text.color: #x182b3c
+                                        draw_text.text_style.font_size: 14
+                                    }
+
+                                    nav_devices := AppButton {
+                                        width: Fill
+                                        height: 48
+                                        align: Align{ x: 0.0, y: 0.5 }
+                                        padding: Inset{ left: 16, right: 12 }
+                                        icon_walk: Walk{ width: 19, height: 19 }
+                                        draw_icon +: { color: #x00a7b8 svg: crate_resource("self:resources/usb.svg") }
+                                        text: "Devices"
+                                        draw_bg.color: if state.current_screen == "devices" { #xe3f6f7 } else { #x0000 }
+                                        draw_bg.color_hover: #xeaf4f6
+                                        draw_bg.color_down: #xd6eef0
+                                        draw_text.color: #x182b3c
+                                        draw_text.text_style.font_size: 14
+                                    }
+
+                                    sidebar_divider := SolidView {
+                                        width: Fill
+                                        height: 1
+                                        margin: Inset{ top: 8, bottom: 8, left: 16, right: 16 }
+                                        show_bg: true
+                                        draw_bg +: { color: #xe3eaee }
+                                    }
+
+                                    sidebar_controls_label := Label {
+                                        width: Fill
+                                        height: 34
+                                        padding: Inset{ left: 18 }
+                                        align: Align{ y: 0.5 }
+                                        text: "Customize"
+                                        draw_text.color: #x718597
+                                        draw_text.text_style.font_size: 11
+                                    }
+
+                                    nav_layouts := AppButton {
+                                        width: Fill
+                                        height: 48
+                                        align: Align{ x: 0.0, y: 0.5 }
+                                        padding: Inset{ left: 16, right: 12 }
+                                        icon_walk: Walk{ width: 19, height: 19 }
+                                        draw_icon +: { color: #x00a7b8 svg: crate_resource("self:resources/touchpad.svg") }
+                                        text: "Layouts"
+                                        draw_bg.color: if state.current_screen == "layouts" { #xe3f6f7 } else { #x0000 }
+                                        draw_bg.color_hover: #xeaf4f6
+                                        draw_bg.color_down: #xd6eef0
+                                        draw_text.color: #x182b3c
+                                        draw_text.text_style.font_size: 14
+                                    }
                                 }
 
                                 sidebar_footer := Label {
                                     width: Fill
-                                    text: "OpenWASD  •  v0.1"
-                                    draw_text.color: #777f90
+                                    height: 52
+                                    padding: Inset{ left: 18 }
+                                    align: Align{ y: 0.5 }
+                                    text: "Local-first input tools  •  v0.1"
+                                    draw_text.color: #x718597
                                     draw_text.text_style.font_size: 11
                                 }
                             }
@@ -1604,6 +1768,17 @@ pub struct App {
     bluetooth_timer: Option<Timer>,
     #[rust]
     bluetooth_refresh_timer: Option<Timer>,
+    #[cfg(target_os = "linux")]
+    #[rust]
+    usb_host: Option<openwasd_usb::bridge::Host>,
+    #[cfg(target_os = "linux")]
+    #[rust]
+    usb_companions: Vec<openwasd_usb::UsbDevice>,
+    #[rust]
+    selected_usb_id: Option<String>,
+    #[cfg(target_os = "android")]
+    #[rust]
+    usb_client: Option<openwasd_usb::bridge::Client>,
     #[rust]
     hid_start_pending: bool,
     #[rust]
@@ -1673,6 +1848,16 @@ impl ScriptHook for App {
         self.bluetooth_selected_id = None;
         self.bluetooth_timer = None;
         self.bluetooth_refresh_timer = None;
+        self.selected_usb_id = None;
+        #[cfg(target_os = "linux")]
+        {
+            self.usb_host = Some(Default::default());
+            self.usb_companions.clear();
+        }
+        #[cfg(target_os = "android")]
+        {
+            self.usb_client = Some(openwasd_usb::bridge::Client::start());
+        }
         self.hid_start_pending = false;
         self.hid_start_retries = 0;
         self.hid_ready = false;
@@ -1725,6 +1910,64 @@ impl ScriptHook for App {
 
 impl MatchEvent for App {
     fn handle_actions(&mut self, cx: &mut Cx, actions: &Actions) {
+        #[cfg(target_os = "linux")]
+        for (index, id) in [
+            live_id!(usb_inspect_1),
+            live_id!(usb_inspect_2),
+            live_id!(usb_inspect_3),
+            live_id!(usb_inspect_4),
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            if self.ui.button(cx, &[id]).clicked(actions) {
+                if let Some(device) = self.usb_companions.get(index) {
+                    self.selected_usb_id = Some(device.id.clone());
+                    self.bluetooth_selected_id = None;
+                    self.device_detail_open = true;
+                    self.device_diagnostics_open = true;
+                    self.ui
+                        .widget(cx, ids!(device_panel))
+                        .set_visible(cx, false);
+                    self.ui
+                        .widget(cx, ids!(device_detail_panel))
+                        .set_visible(cx, true);
+                    self.ui
+                        .view(cx, ids!(scroll_body))
+                        .set_scroll_pos(cx, dvec2(0.0, 0.0));
+                    self.render_device_detail(cx);
+                }
+            }
+        }
+        #[cfg(target_os = "linux")]
+        for (index, id) in [
+            live_id!(usb_companion_1),
+            live_id!(usb_companion_2),
+            live_id!(usb_companion_3),
+            live_id!(usb_companion_4),
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            if self.ui.button(cx, &[id]).clicked(actions) {
+                if let Some(device) = self.usb_companions.get(index) {
+                    if let Some(host) = self.usb_host.as_mut() {
+                        match host.status(&device.id) {
+                            Some(status)
+                                if status.starts_with("USB connection failed:")
+                                    || status == "Disconnected" =>
+                            {
+                                host.disconnect(&device.id);
+                                host.connect(&device.id, &device.name);
+                            }
+                            Some(_) => host.disconnect(&device.id),
+                            None => host.connect(&device.id, &device.name),
+                        }
+                    }
+                }
+                self.render_usb_devices(cx);
+            }
+        }
         if self.ui.button(cx, ids!(bluetooth_connect)).clicked(actions)
             || self.ui.button(cx, ids!(refresh_devices)).clicked(actions)
         {
@@ -2029,6 +2272,7 @@ impl MatchEvent for App {
             self.ui.widget(cx, ids!(device_panel)).set_visible(cx, true);
             self.device_detail_open = false;
             self.device_diagnostics_open = false;
+            self.selected_usb_id = None;
         }
 
         if self
@@ -2051,6 +2295,10 @@ impl MatchEvent for App {
 
         if self.ui.button(cx, ids!(diagnostics_clear)).clicked(actions) {
             self.diagnostic_events.clear();
+            #[cfg(target_os = "linux")]
+            if let (Some(host), Some(serial)) = (&self.usb_host, &self.selected_usb_id) {
+                host.clear_events(serial);
+            }
             self.render_diagnostics(cx);
         }
 
@@ -2094,7 +2342,29 @@ impl MatchEvent for App {
             });
         }
 
-        if self.ui.button(cx, ids!(nav_devices)).clicked(actions) {
+        if self.ui.button(cx, ids!(nav_dashboard)).clicked(actions) {
+            self.release_custom_controls();
+            self.custom_learning = false;
+            self.layout_surface_active = false;
+            self.hid_start_pending = false;
+            self.device_detail_open = false;
+            self.device_diagnostics_open = false;
+            self.ui
+                .widget(cx, ids!(device_detail_panel))
+                .set_visible(cx, false);
+            script_eval!(cx, {
+                mod.state.current_screen = "dashboard";
+                mod.state.sidebar_collapsed = true;
+                ui.main_view.render()
+            });
+            self.ui
+                .view(cx, ids!(scroll_body))
+                .set_scroll_pos(cx, dvec2(0.0, 0.0));
+        }
+
+        if self.ui.button(cx, ids!(nav_devices)).clicked(actions)
+            || self.ui.button(cx, ids!(bottom_devices)).clicked(actions)
+        {
             self.release_custom_controls();
             self.custom_learning = false;
             self.layout_surface_active = false;
@@ -2109,9 +2379,16 @@ impl MatchEvent for App {
                 mod.state.sidebar_collapsed = true;
                 ui.main_view.render()
             });
+            self.ui
+                .view(cx, ids!(scroll_body))
+                .set_scroll_pos(cx, dvec2(0.0, 0.0));
+            self.render_usb_devices(cx);
+            self.render_bluetooth_devices(cx);
         }
 
-        if self.ui.button(cx, ids!(nav_layouts)).clicked(actions) {
+        if self.ui.button(cx, ids!(nav_layouts)).clicked(actions)
+            || self.ui.button(cx, ids!(bottom_layouts)).clicked(actions)
+        {
             self.release_custom_controls();
             self.custom_learning = false;
             self.layout_surface_active = false;
@@ -2174,12 +2451,17 @@ impl AppMain for App {
             Event::Pause | Event::Background | Event::WindowLostFocus(_) | Event::Shutdown => {
                 self.release_custom_controls();
                 self.custom_learning = false;
+                #[cfg(target_os = "linux")]
+                if matches!(event, Event::Shutdown) {
+                    self.usb_host = None;
+                }
             }
             Event::Startup => {
                 log!("[OpenWASD][Bluetooth] app startup; starting connected-device refresh timer");
                 self.bluetooth_timer = Some(cx.start_interval(0.2));
                 self.bluetooth_refresh_timer = Some(cx.start_interval(3.0));
                 self.refresh_system_bluetooth_devices();
+                self.render_usb_devices(cx);
                 #[cfg(target_os = "android")]
                 if self.layout_surface_active {
                     self.request_hid_start();
@@ -2220,6 +2502,9 @@ impl AppMain for App {
             .as_ref()
             .is_some_and(|timer| timer.is_event(event).is_some())
         {
+            if self.device_diagnostics_open && self.selected_usb_id.is_some() {
+                self.render_diagnostics(cx);
+            }
             while let Some(event) = self
                 .bluetooth
                 .as_ref()
@@ -2248,9 +2533,12 @@ impl AppMain for App {
                 }
             }
             self.refresh_system_bluetooth_devices();
+            self.render_usb_devices(cx);
+            #[cfg(target_os = "android")]
+            if self.layout_surface_active {
+                self.render_layouts(cx);
+            }
         }
-
-        self.record_diagnostic_event(cx, event);
 
         self.match_event(cx, event);
         self.ui.handle_event(cx, event, &mut Scope::empty());
@@ -2258,6 +2546,101 @@ impl AppMain for App {
 }
 
 impl App {
+    fn render_usb_devices(&mut self, cx: &mut Cx) {
+        #[cfg(target_os = "android")]
+        {
+            let connected = self
+                .usb_client
+                .as_ref()
+                .is_some_and(|client| client.is_connected());
+            self.ui
+                .label(cx, ids!(usb_title))
+                .set_text(cx, "USB companion");
+            self.ui.label(cx, ids!(usb_status)).set_text(
+                cx,
+                if connected {
+                    "Connected to a computer · gamepad, keyboard and mouse ready"
+                } else {
+                    "Waiting for a computer to connect"
+                },
+            );
+            self.ui.label(cx, ids!(usb_capabilities)).set_text(
+                cx,
+                "Connect by USB. Select this device on the Linux computer's Devices page.",
+            );
+            return;
+        }
+        #[cfg(not(target_os = "android"))]
+        {
+            let inventory = openwasd_usb::connected_devices();
+            let status = match &inventory {
+                openwasd_usb::Inventory::Available(devices) if devices.is_empty() => {
+                    "No USB devices attached.".to_owned()
+                }
+                openwasd_usb::Inventory::Available(devices) => devices
+                    .iter()
+                    .map(|device| {
+                        format!(
+                            "●  {}  ·  USB attached  ·  {:04x}:{:04x}",
+                            device.name, device.vendor_id, device.product_id
+                        )
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n"),
+                openwasd_usb::Inventory::Unavailable(reason) => reason.clone(),
+            };
+            self.ui.label(cx, ids!(usb_status)).set_text(cx, &status);
+            #[cfg(target_os = "linux")]
+            {
+                self.usb_companions = match &inventory {
+                    openwasd_usb::Inventory::Available(devices) => devices.clone(),
+                    openwasd_usb::Inventory::Unavailable(_) => Vec::new(),
+                };
+                self.ui.label(cx, ids!(usb_bridge_status)).set_text(
+                    cx,
+                    "USB input uses Android Open Accessory mode; device support and USB permissions vary.",
+                );
+                for (index, id) in [
+                    live_id!(usb_companion_1),
+                    live_id!(usb_companion_2),
+                    live_id!(usb_companion_3),
+                    live_id!(usb_companion_4),
+                ]
+                .into_iter()
+                .enumerate()
+                {
+                    let inspect = [
+                        live_id!(usb_inspect_1),
+                        live_id!(usb_inspect_2),
+                        live_id!(usb_inspect_3),
+                        live_id!(usb_inspect_4),
+                    ][index];
+                    if let Some(device) = self.usb_companions.get(index) {
+                        let state = self
+                            .usb_host
+                            .as_ref()
+                            .and_then(|host| host.status(&device.id))
+                            .unwrap_or_else(|| "Tap to connect".into());
+                        self.ui
+                            .button(cx, &[id])
+                            .set_text(cx, &format!("{} · USB · {}", device.name, state));
+                        self.ui.widget(cx, &[id]).set_visible(cx, true);
+                        self.ui.widget(cx, &[inspect]).set_visible(
+                            cx,
+                            self.usb_host
+                                .as_ref()
+                                .and_then(|host| host.status(&device.id))
+                                .is_some(),
+                        );
+                    } else {
+                        self.ui.widget(cx, &[id]).set_visible(cx, false);
+                        self.ui.widget(cx, &[inspect]).set_visible(cx, false);
+                    }
+                }
+            }
+        }
+    }
+
     #[cfg(target_os = "android")]
     fn request_hid_start(&mut self) {
         self.hid_start_pending = true;
@@ -2266,6 +2649,40 @@ impl App {
     }
 
     fn send_bluetooth_command(&mut self, command: BluetoothCommand) {
+        #[cfg(target_os = "android")]
+        if let Some(client) = self
+            .usb_client
+            .as_ref()
+            .filter(|client| client.is_connected())
+        {
+            use openwasd_usb::bridge::GamepadMessage;
+            let message = match &command {
+                BluetoothCommand::HidGamepad(report) => Some(GamepadMessage::Report(*report)),
+                BluetoothCommand::HidGamepadPress(button) => Some(GamepadMessage::Press(*button)),
+                BluetoothCommand::HidGamepadHat(hat) => Some(GamepadMessage::Hat(*hat)),
+                BluetoothCommand::HidKeyboard(report) => Some(GamepadMessage::Keyboard(*report)),
+                BluetoothCommand::HidKey(report) => Some(GamepadMessage::Key(*report)),
+                BluetoothCommand::HidMouse {
+                    buttons,
+                    dx,
+                    dy,
+                    wheel,
+                } => Some(GamepadMessage::Mouse {
+                    buttons: *buttons as u8,
+                    dx: *dx,
+                    dy: *dy,
+                    wheel: *wheel,
+                }),
+                BluetoothCommand::HidClick(buttons) => Some(GamepadMessage::Click(*buttons as u8)),
+                _ => None,
+            };
+            if let Some(message) = message {
+                if !client.send(message) {
+                    log!("[OpenWASD][USB] gamepad queue failed; closing session");
+                }
+                return;
+            }
+        }
         #[cfg(target_os = "android")]
         if matches!(
             &command,
@@ -3021,7 +3438,16 @@ impl App {
         self.ui
             .label(cx, ids!(layout_surface_title))
             .set_text(cx, preview_name);
-        let device_status = if let Some(status) = self.hid_host.label() {
+        #[cfg(target_os = "android")]
+        let usb_gamepad = self
+            .usb_client
+            .as_ref()
+            .is_some_and(|client| client.is_connected());
+        #[cfg(not(target_os = "android"))]
+        let usb_gamepad = false;
+        let device_status = if usb_gamepad {
+            "USB connected · gamepad, keyboard and mouse ready".to_string()
+        } else if let Some(status) = self.hid_host.label() {
             status
         } else if self.hid_start_pending {
             "Preparing Bluetooth HID…".to_string()
@@ -3037,7 +3463,9 @@ impl App {
             .set_text(cx, &device_status);
         self.ui.label(cx, ids!(gamepad_status)).set_text(
             cx,
-            if self.hid_host.gamepad_ready() {
+            if usb_gamepad {
+                "USB gamepad connected. Tap a control to send a press."
+            } else if self.hid_host.gamepad_ready() {
                 "Bluetooth gamepad connected. Tap a control to send a press."
             } else if self.hid_ready {
                 "Connect a Bluetooth host that enables the gamepad report."
@@ -3265,6 +3693,7 @@ impl App {
             return;
         };
         self.bluetooth_selected_id = Some(device.id.clone());
+        self.selected_usb_id = None;
         self.device_detail_open = true;
         self.device_diagnostics_open = false;
         self.diagnostic_events.clear();
@@ -3278,6 +3707,36 @@ impl App {
     }
 
     fn render_device_detail(&self, cx: &mut Cx) {
+        #[cfg(target_os = "linux")]
+        if let Some(device_id) = &self.selected_usb_id {
+            let name = self
+                .usb_companions
+                .iter()
+                .find(|device| &device.id == device_id)
+                .map(|device| device.name.as_str())
+                .unwrap_or("USB device");
+            let status = self
+                .usb_host
+                .as_ref()
+                .and_then(|host| host.status(device_id))
+                .unwrap_or_else(|| "Disconnected".into());
+            self.ui
+                .label(cx, ids!(device_detail_title))
+                .set_text(cx, &format!("{name} input"));
+            self.ui
+                .label(cx, ids!(device_detail_connection))
+                .set_text(cx, &format!("USB · {status}"));
+            self.ui.label(cx, ids!(device_overview_details)).set_text(
+                cx,
+                &format!("Device: {name}\nTransport: USB accessory\nState: {status}"),
+            );
+            self.ui
+                .label(cx, ids!(device_settings_hint))
+                .set_text(cx, "Use the Devices page to disconnect this USB device.");
+            self.ui
+                .label(cx, ids!(diagnostics_hint))
+                .set_text(cx, "Input received from this USB companion, newest first.");
+        }
         let selected = self.bluetooth_selected_id.as_ref().and_then(|id| {
             self.bluetooth_devices
                 .iter()
@@ -3317,36 +3776,26 @@ impl App {
     }
 
     fn render_diagnostics(&self, cx: &mut Cx) {
-        let text = if self.diagnostic_events.is_empty() {
-            "Waiting for mouse, keyboard, or touch input…".to_string()
+        #[cfg(target_os = "linux")]
+        let usb_events = self
+            .selected_usb_id
+            .as_ref()
+            .and_then(|serial| self.usb_host.as_ref().map(|host| host.events(serial)));
+        #[cfg(not(target_os = "linux"))]
+        let usb_events: Option<Vec<String>> = None;
+        let events = usb_events.as_ref().unwrap_or(&self.diagnostic_events);
+        let text = if events.is_empty() {
+            if self.selected_usb_id.is_some() {
+                "Waiting for input from this USB companion…".to_string()
+            } else {
+                "Device-specific Bluetooth input inspection is not available yet.".to_string()
+            }
         } else {
-            self.diagnostic_events.join("\n")
+            events.join("\n")
         };
         self.ui
             .label(cx, ids!(diagnostics_events))
             .set_text(cx, &text);
-    }
-
-    fn record_diagnostic_event(&mut self, cx: &mut Cx, event: &Event) {
-        if !self.device_diagnostics_open {
-            return;
-        }
-        let entry = match event {
-            Event::MouseMove(mouse) => Some(format!(
-                "Mouse moved     x {:>5.0}   y {:>5.0}",
-                mouse.abs.x, mouse.abs.y
-            )),
-            Event::MouseDown(mouse) => Some(format!("{:?} pressed", mouse.button)),
-            Event::MouseUp(mouse) => Some(format!("{:?} released", mouse.button)),
-            Event::KeyDown(key) => Some(format!("Key pressed    {:?}", key.key_code)),
-            Event::KeyUp(key) => Some(format!("Key released   {:?}", key.key_code)),
-            _ => None,
-        };
-        if let Some(entry) = entry {
-            self.diagnostic_events.insert(0, entry);
-            self.diagnostic_events.truncate(12);
-            self.render_diagnostics(cx);
-        }
     }
 
     fn render_selected_bluetooth_device(&self, cx: &mut Cx) {
@@ -3639,7 +4088,6 @@ impl App {
     }
 }
 
-#[cfg(target_os = "android")]
 fn log_hid_input_command(stage: &str, command: &BluetoothCommand) {
     use std::sync::atomic::{AtomicUsize, Ordering};
     static MOUSE_INPUTS: AtomicUsize = AtomicUsize::new(0);
