@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key><string>en</string>
+    <key>CFBundleExecutable</key><string>openwasd-hid-host-test</string>
+    <key>CFBundleIdentifier</key><string>dev.openwasd.hid-host-test</string>
+    <key>CFBundleName</key><string>OpenWASD HID Host Test</string>
+    <key>CFBundlePackageType</key><string>APPL</string>
+    <key>CFBundleShortVersionString</key><string>0.1.0</string>
+    <key>CFBundleVersion</key><string>1</string>
+    <key>NSBluetoothAlwaysUsageDescription</key>
+    <string>OpenWASD uses Bluetooth to verify its Android BLE HID connection and input reports.</string>
+</dict>
+</plist>

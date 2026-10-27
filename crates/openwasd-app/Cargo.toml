@@ -1,0 +1,23 @@
+[package]
+name = "openwasd"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "OpenWASD cross-platform input mapping workspace"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+openwasd-core = { path = "../openwasd-core" }
+openwasd-bluetooth = { path = "../openwasd-bluetooth", features = ["btleplug"] }
+makepad-widgets = { git = "https://github.com/kevinaboos/makepad", branch = "wayland_restore_maximized_not_fullscreen", features = ["serde"] }
+robius-use-makepad = "0.1.1"
+robius-directories = { git = "https://github.com/project-robius/robius" }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time"] }
+
+[features]
+default = []
+hide_windows_console = []
+
+[package.metadata.makepad.android]
+min_sdk_version = 28

@@ -1,0 +1,12 @@
+[workspace]
+resolver = "2"
+members = ["crates/openwasd-core", "crates/openwasd-bluetooth", "crates/openwasd-app"]
+
+[workspace.package]
+edition = "2024"
+license = "MIT"
+version = "0.1.0"
+
+[profile.release]
+lto = "thin"
+strip = "symbols"

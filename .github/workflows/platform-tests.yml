@@ -1,0 +1,46 @@
+name: Platform tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  host-tests:
+    name: ${{ matrix.os }} tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - name: Check out OpenWASD
+        uses: actions/checkout@v4
+        with:
+          path: openwasd
+      - name: Check out the local btleplug dependency
+        uses: actions/checkout@v4
+        with:
+          repository: dinosath/btleplug
+          path: btleplug
+      - name: Run platform-independent tests
+        working-directory: openwasd
+        run: cargo test -p openwasd-core -p openwasd-bluetooth
+
+  android-test-compile:
+    name: Android test compile
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out OpenWASD
+        uses: actions/checkout@v4
+        with:
+          path: openwasd
+      - name: Check out the local btleplug dependency
+        uses: actions/checkout@v4
+        with:
+          repository: dinosath/btleplug
+          path: btleplug
+      - name: Install Android Rust target
+        run: rustup target add aarch64-linux-android
+      - name: Compile shared tests for Android
+        working-directory: openwasd
+        run: cargo check -p openwasd-core -p openwasd-bluetooth --tests --target aarch64-linux-android

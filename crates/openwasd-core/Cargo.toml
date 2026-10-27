@@ -1,0 +1,9 @@
+[package]
+name = "openwasd-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Platform-independent mapping, profiles, and connectivity model for OpenWASD"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
