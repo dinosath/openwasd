@@ -199,6 +199,28 @@ impl std::fmt::Display for BluetoothError {
     }
 }
 
+/// Open Android's Bluetooth settings for pairing and connection management.
+#[cfg(target_os = "android")]
+pub fn open_android_bluetooth_settings() -> Result<(), BluetoothError> {
+    robius_android_env::with_activity(|env, activity| -> jni::errors::Result<()> {
+        let action = env.new_string("android.settings.BLUETOOTH_SETTINGS")?;
+        let intent = env.new_object(
+            "android/content/Intent",
+            "(Ljava/lang/String;)V",
+            &[(&action).into()],
+        )?;
+        env.call_method(
+            activity,
+            "startActivity",
+            "(Landroid/content/Intent;)V",
+            &[(&intent).into()],
+        )?;
+        Ok(())
+    })
+    .map_err(|error| BluetoothError::Failed(error.to_string()))?
+    .map_err(|error| BluetoothError::Failed(error.to_string()))
+}
+
 #[async_trait]
 pub trait BluetoothAdapter: Send + Sync + 'static {
     async fn scan(&self) -> Result<Vec<BluetoothDeviceInfo>, BluetoothError>;

@@ -202,6 +202,17 @@ descriptor against real macOS and other intended hosts before claiming broader
 host compatibility. Continue with a single Android-to-desktop path before
 generalizing.
 
+An initial Android custom-controls editor now saves up to six ordered screen
+buttons per layout, with keyboard, volume, mouse-button, gamepad-button and
+Bluetooth-settings actions and optional learned hardware buttons. Controls
+aggregate held inputs and send releases when leaving the surface. It is a fixed
+grid with digital buttons; free placement, analog controls and background
+remapping remain future work. The Retroid Pocket 5 build and editor were checked
+on device, and Android queued press/release reports for a connected Bazzite host;
+host-side input behavior and volume still require independent verification.
+The local Makepad and btleplug commits documented in the README must be
+published before the Git dependencies reproduce the tested build.
+
 ### Phase 4 — Profiles and routing
 
 Add Profiles, Configs, device groups, Sub-configs, Layers, trigger conditions,

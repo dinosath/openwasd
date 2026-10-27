@@ -7,7 +7,7 @@ description = "Bluetooth discovery, pairing, and connection lifecycle for OpenWA
 
 [dependencies]
 async-trait = "0.1"
-btleplug = { path = "../../../btleplug", optional = true }
+btleplug = { git = "https://github.com/dinosath/btleplug", branch = "codex/openwasd-bluetooth-features", optional = true }
 openwasd-core = { path = "../openwasd-core" }
 serde = { version = "1", features = ["derive"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time"] }

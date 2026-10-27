@@ -7,6 +7,8 @@
 use serde::{Deserialize, Serialize};
 use std::sync::mpsc::{self, Receiver, Sender};
 
+pub mod custom_layout;
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Transport {
     Bluetooth,

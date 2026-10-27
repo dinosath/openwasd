@@ -14,6 +14,26 @@ OpenWASD is a cross-platform input control workspace built around a shared Rust 
 
 The Bluetooth service uses the [`dinosath/btleplug` fork](https://github.com/dinosath/btleplug/tree/codex/openwasd-bluetooth-features) for BLE central scanning, GATT connections, and the `Central::connected_peripherals()` API on supported platforms, including macOS and Android. Its Android BLE HID-over-GATT support handles mouse and keyboard reports; OpenWASD's Android adapter exposes start/stop, report, and connected-host methods, and the touchpad and click controls send HID reports through that adapter.
 
+### Custom companion controls
+
+On Android, open **Layouts → New layout**, select **Custom controls**, and
+create a layout. Open its settings to add, label, reorder, and remove up to six
+buttons. Select a button and choose a keyboard key, volume key, gamepad button,
+mouse button, or Android Bluetooth settings shortcut. **Assign hardware button**
+learns a physical button for that control; the on-screen button remains usable.
+Changes are saved on the device. Open the layout and connect a Bluetooth HID
+host to send input; controls release when the layout loses focus or closes.
+
+This first editor uses a fixed grid, not free placement, and supports digital
+buttons rather than analog sticks or arbitrary widgets. Hardware mappings work
+while the custom layout is in the foreground, and depend on Android delivering
+the button to the app. Volume output needs the updated btleplug HID descriptor;
+hosts that cached the previous descriptor may need the device re-paired.
+The Makepad input changes (local commit `604e36d`) and btleplug descriptor
+change (local commit `f2a2563`) are needed for the tested Android build; they
+must be published to their respective Git branches before the normal Git-based
+dependencies can reproduce that build.
+
 ## Run
 
 Run the desktop app locally:

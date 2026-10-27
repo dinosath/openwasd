@@ -5,6 +5,7 @@ use openwasd_bluetooth::{
     BluetoothCommand, BluetoothDeviceInfo, BluetoothEvent, BluetoothService, BtleplugAdapter,
     ConnectionState, HidHostState, merge_devices,
 };
+use openwasd_core::custom_layout::{ActiveControls, ControlAction, CustomControl};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 #[cfg(any(target_os = "macos", target_os = "windows", target_os = "linux"))]
@@ -17,6 +18,7 @@ app_main!(App);
 enum LayoutKind {
     Keyboard,
     Gamepad,
+    Custom,
     #[default]
     Touchpad,
 }
@@ -26,6 +28,7 @@ impl LayoutKind {
         match self {
             Self::Keyboard => "Full keyboard",
             Self::Gamepad => "Gamepad",
+            Self::Custom => "Custom controls",
             Self::Touchpad => "Touchpad",
         }
     }
@@ -35,6 +38,107 @@ impl LayoutKind {
 struct SavedLayout {
     name: String,
     kind: LayoutKind,
+    #[serde(default)]
+    controls: Vec<CustomControl>,
+}
+
+const CUSTOM_LIMIT: usize = 6;
+const CUSTOM_OUTPUTS: &[(&str, ControlAction)] = &[
+    ("Keyboard · Space", ControlAction::Keyboard(44)),
+    ("Keyboard · Enter", ControlAction::Keyboard(40)),
+    ("Keyboard · Escape", ControlAction::Keyboard(41)),
+    ("Keyboard · W", ControlAction::Keyboard(26)),
+    ("Keyboard · A", ControlAction::Keyboard(4)),
+    ("Keyboard · S", ControlAction::Keyboard(22)),
+    ("Keyboard · D", ControlAction::Keyboard(7)),
+    ("Keyboard · B", ControlAction::Keyboard(5)),
+    ("Keyboard · C", ControlAction::Keyboard(6)),
+    ("Keyboard · E", ControlAction::Keyboard(8)),
+    ("Keyboard · F", ControlAction::Keyboard(9)),
+    ("Keyboard · G", ControlAction::Keyboard(10)),
+    ("Keyboard · H", ControlAction::Keyboard(11)),
+    ("Keyboard · I", ControlAction::Keyboard(12)),
+    ("Keyboard · J", ControlAction::Keyboard(13)),
+    ("Keyboard · K", ControlAction::Keyboard(14)),
+    ("Keyboard · L", ControlAction::Keyboard(15)),
+    ("Keyboard · M", ControlAction::Keyboard(16)),
+    ("Keyboard · N", ControlAction::Keyboard(17)),
+    ("Keyboard · O", ControlAction::Keyboard(18)),
+    ("Keyboard · P", ControlAction::Keyboard(19)),
+    ("Keyboard · Q", ControlAction::Keyboard(20)),
+    ("Keyboard · R", ControlAction::Keyboard(21)),
+    ("Keyboard · T", ControlAction::Keyboard(23)),
+    ("Keyboard · U", ControlAction::Keyboard(24)),
+    ("Keyboard · V", ControlAction::Keyboard(25)),
+    ("Keyboard · X", ControlAction::Keyboard(27)),
+    ("Keyboard · Y", ControlAction::Keyboard(28)),
+    ("Keyboard · Z", ControlAction::Keyboard(29)),
+    ("Keyboard · 1", ControlAction::Keyboard(30)),
+    ("Keyboard · 2", ControlAction::Keyboard(31)),
+    ("Keyboard · 3", ControlAction::Keyboard(32)),
+    ("Keyboard · 4", ControlAction::Keyboard(33)),
+    ("Keyboard · 5", ControlAction::Keyboard(34)),
+    ("Keyboard · 6", ControlAction::Keyboard(35)),
+    ("Keyboard · 7", ControlAction::Keyboard(36)),
+    ("Keyboard · 8", ControlAction::Keyboard(37)),
+    ("Keyboard · 9", ControlAction::Keyboard(38)),
+    ("Keyboard · 0", ControlAction::Keyboard(39)),
+    ("Keyboard · Backspace", ControlAction::Keyboard(42)),
+    ("Keyboard · Tab", ControlAction::Keyboard(43)),
+    ("Keyboard · Up", ControlAction::Keyboard(82)),
+    ("Keyboard · Down", ControlAction::Keyboard(81)),
+    ("Keyboard · Left", ControlAction::Keyboard(80)),
+    ("Keyboard · Right", ControlAction::Keyboard(79)),
+    ("Volume · Up", ControlAction::Keyboard(128)),
+    ("Volume · Down", ControlAction::Keyboard(129)),
+    ("Gamepad · A", ControlAction::GamepadButton(0)),
+    ("Gamepad · B", ControlAction::GamepadButton(1)),
+    ("Gamepad · X", ControlAction::GamepadButton(2)),
+    ("Gamepad · Y", ControlAction::GamepadButton(3)),
+    ("Gamepad · L1", ControlAction::GamepadButton(4)),
+    ("Gamepad · R1", ControlAction::GamepadButton(5)),
+    ("Gamepad · L2", ControlAction::GamepadButton(6)),
+    ("Gamepad · R2", ControlAction::GamepadButton(7)),
+    ("Gamepad · Select", ControlAction::GamepadButton(8)),
+    ("Gamepad · Start", ControlAction::GamepadButton(9)),
+    ("Gamepad · Home", ControlAction::GamepadButton(10)),
+    ("Mouse · Left click", ControlAction::MouseButton(1)),
+    ("Mouse · Right click", ControlAction::MouseButton(2)),
+    ("Mouse · Middle click", ControlAction::MouseButton(4)),
+    ("Bluetooth · Settings", ControlAction::BluetoothSettings),
+];
+
+fn custom_output_label(action: ControlAction) -> &'static str {
+    CUSTOM_OUTPUTS
+        .iter()
+        .find(|(_, candidate)| *candidate == action)
+        .map(|(label, _)| *label)
+        .unwrap_or("Unknown output")
+}
+
+fn custom_output_group(action: ControlAction) -> u8 {
+    match action {
+        ControlAction::Keyboard(128 | 129) => 1,
+        ControlAction::Keyboard(_) => 0,
+        ControlAction::GamepadButton(_) => 2,
+        ControlAction::MouseButton(_) => 3,
+        ControlAction::BluetoothSettings => 4,
+    }
+}
+
+fn default_custom_controls() -> Vec<CustomControl> {
+    vec![
+        CustomControl {
+            label: "Action A".into(),
+            action: ControlAction::GamepadButton(0),
+            hardware_key: None,
+        },
+        CustomControl {
+            label: "Space".into(),
+            action: ControlAction::Keyboard(44),
+            hardware_key: None,
+        },
+    ]
 }
 
 fn saved_layouts_path() -> Option<PathBuf> {
@@ -576,6 +680,104 @@ script_mod! {
                                         }
                                     }
 
+                                    layout_create_form := View {
+                                        width: Fill
+                                        height: Fit
+                                        visible: false
+                                        flow: Down
+                                        spacing: 10
+                                        padding: 16
+                                        show_bg: true
+                                        draw_bg +: { color: #x191c23 }
+
+                                        layout_name_input := TextInput {
+                                            width: Fill
+                                            height: 42
+                                            empty_text: "Name this layout"
+                                        }
+
+                                        layout_create_type := View {
+                                            width: Fill
+                                            height: Fit
+                                            flow: Right
+                                            spacing: 8
+
+                                            layout_create_keyboard := Button {
+                                                width: Fill
+                                                height: 40
+                                                text: "Full keyboard"
+                                                draw_bg.color: #292d37
+                                                draw_bg.color_hover: #3b68c1
+                                                draw_bg.color_down: #284f9e
+                                                draw_text.color: #ffffff
+                                                draw_text.text_style.font_size: 12
+                                            }
+
+                                            layout_create_touchpad := Button {
+                                                width: Fill
+                                                height: 40
+                                                text: "Touchpad"
+                                                draw_bg.color: #292d37
+                                                draw_bg.color_hover: #363c49
+                                                draw_bg.color_down: #414959
+                                                draw_text.color: #e5e7ed
+                                                draw_text.text_style.font_size: 12
+                                            }
+                                            layout_create_gamepad := Button {
+                                                width: Fill
+                                                height: 40
+                                                text: "Gamepad"
+                                                draw_bg.color: #292d37
+                                                draw_bg.color_hover: #363c49
+                                                draw_bg.color_down: #414959
+                                                draw_text.color: #e5e7ed
+                                                draw_text.text_style.font_size: 12
+                                            }
+                                            layout_create_custom := Button {
+                                                width: Fill height: 40 text: "Custom controls"
+                                                draw_bg.color: #292d37 draw_bg.color_hover: #363c49
+                                                draw_bg.color_down: #3159a8 draw_text.color: #e5e7ed
+                                                draw_text.text_style.font_size: 12
+                                            }
+                                        }
+
+                                        layout_create_actions := View {
+                                            width: Fill
+                                            height: Fit
+                                            flow: Right
+                                            spacing: 8
+
+                                            layout_save := Button {
+                                                width: 104
+                                                height: 38
+                                                text: "Save layout"
+                                                draw_bg.color: #3567c8
+                                                draw_bg.color_hover: #4278df
+                                                draw_bg.color_down: #284f9e
+                                                draw_text.color: #ffffff
+                                                draw_text.text_style.font_size: 12
+                                            }
+
+                                            layout_cancel := Button {
+                                                width: 92
+                                                height: 38
+                                                text: "Cancel"
+                                                draw_bg.color: #292d37
+                                                draw_bg.color_hover: #363c49
+                                                draw_bg.color_down: #414959
+                                                draw_text.color: #c2c9d4
+                                                draw_text.text_style.font_size: 12
+                                            }
+                                        }
+
+                                        layout_save_status := Label {
+                                            width: Fill
+                                            text: "Choose a name and a control surface."
+                                            draw_text.color: #9ba2b1
+                                            draw_text.text_style.font_size: 12
+                                        }
+                                    }
+
                                     layout_choices := View {
                                         width: Fill
                                         height: Fit
@@ -669,98 +871,6 @@ script_mod! {
                                         draw_bg.color_down: #414959
                                         draw_text.color: #e5e7ed
                                         draw_text.text_style.font_size: 13
-                                    }
-
-                                    layout_create_form := View {
-                                        width: Fill
-                                        height: Fit
-                                        visible: false
-                                        flow: Down
-                                        spacing: 10
-                                        padding: 16
-                                        show_bg: true
-                                        draw_bg +: { color: #x191c23 }
-
-                                        layout_name_input := TextInput {
-                                            width: Fill
-                                            height: 42
-                                            empty_text: "Name this layout"
-                                        }
-
-                                        layout_create_type := View {
-                                            width: Fill
-                                            height: Fit
-                                            flow: Right
-                                            spacing: 8
-
-                                            layout_create_keyboard := Button {
-                                                width: Fill
-                                                height: 40
-                                                text: "Full keyboard"
-                                                draw_bg.color: #3159a8
-                                                draw_bg.color_hover: #3b68c1
-                                                draw_bg.color_down: #284f9e
-                                                draw_text.color: #ffffff
-                                                draw_text.text_style.font_size: 12
-                                            }
-
-                                            layout_create_touchpad := Button {
-                                                width: Fill
-                                                height: 40
-                                                text: "Touchpad"
-                                                draw_bg.color: #292d37
-                                                draw_bg.color_hover: #363c49
-                                                draw_bg.color_down: #414959
-                                                draw_text.color: #e5e7ed
-                                                draw_text.text_style.font_size: 12
-                                            }
-                                            layout_create_gamepad := Button {
-                                                width: Fill
-                                                height: 40
-                                                text: "Gamepad"
-                                                draw_bg.color: #292d37
-                                                draw_bg.color_hover: #363c49
-                                                draw_bg.color_down: #414959
-                                                draw_text.color: #e5e7ed
-                                                draw_text.text_style.font_size: 12
-                                            }
-                                        }
-
-                                        layout_create_actions := View {
-                                            width: Fill
-                                            height: Fit
-                                            flow: Right
-                                            spacing: 8
-
-                                            layout_save := Button {
-                                                width: 104
-                                                height: 38
-                                                text: "Save layout"
-                                                draw_bg.color: #3567c8
-                                                draw_bg.color_hover: #4278df
-                                                draw_bg.color_down: #284f9e
-                                                draw_text.color: #ffffff
-                                                draw_text.text_style.font_size: 12
-                                            }
-
-                                            layout_cancel := Button {
-                                                width: 92
-                                                height: 38
-                                                text: "Cancel"
-                                                draw_bg.color: #292d37
-                                                draw_bg.color_hover: #363c49
-                                                draw_bg.color_down: #414959
-                                                draw_text.color: #c2c9d4
-                                                draw_text.text_style.font_size: 12
-                                            }
-                                        }
-
-                                        layout_save_status := Label {
-                                            width: Fill
-                                            text: "Choose a name and a control surface."
-                                            draw_text.color: #9ba2b1
-                                            draw_text.text_style.font_size: 12
-                                        }
                                     }
 
                                     layout_preview_title := Label {
@@ -1099,6 +1209,24 @@ script_mod! {
                                         gamepad_status := Label { width: Fill height: 24 text: "Tap a control to send a Bluetooth gamepad press." draw_text.color: #9ba2b1 draw_text.text_style.font_size: 12 }
                                     }
 
+                                    layout_surface_custom := View {
+                                        width: Fill height: Fill visible: state.selected_layout_kind == "custom" flow: Down spacing: 12
+                                        padding: 16 show_bg: true draw_bg +: { color: #x1b2029 }
+                                        custom_surface_hint := Label { width: Fill height: Fit text: "YOUR CONTROLS   ·   Hold a button to send input" draw_text.color: #a8c9df draw_text.text_style.font_size: 11 }
+                                        custom_surface_row_1 := View {
+                                            width: Fill height: Fill flow: Right spacing: 12
+                                            custom_surface_1 := Button { width: Fill height: Fill text: "" draw_bg.color: #28496a draw_bg.color_hover: #355d80 draw_bg.color_down: #477da3 draw_text.color: #ffffff draw_text.text_style.font_size: 18 }
+                                            custom_surface_2 := Button { width: Fill height: Fill text: "" draw_bg.color: #35415a draw_bg.color_hover: #465675 draw_bg.color_down: #587397 draw_text.color: #ffffff draw_text.text_style.font_size: 18 }
+                                            custom_surface_3 := Button { width: Fill height: Fill text: "" draw_bg.color: #3a4b50 draw_bg.color_hover: #4a6268 draw_bg.color_down: #57828a draw_text.color: #ffffff draw_text.text_style.font_size: 18 }
+                                        }
+                                        custom_surface_row_2 := View {
+                                            width: Fill height: Fill flow: Right spacing: 12
+                                            custom_surface_4 := Button { width: Fill height: Fill text: "" draw_bg.color: #3b405d draw_bg.color_hover: #515a7b draw_bg.color_down: #6779a6 draw_text.color: #ffffff draw_text.text_style.font_size: 18 }
+                                            custom_surface_5 := Button { width: Fill height: Fill text: "" draw_bg.color: #4a3d52 draw_bg.color_hover: #5d4b68 draw_bg.color_down: #80618a draw_text.color: #ffffff draw_text.text_style.font_size: 18 }
+                                            custom_surface_6 := Button { width: Fill height: Fill text: "" draw_bg.color: #4b4740 draw_bg.color_hover: #625c4e draw_bg.color_down: #8a795d draw_text.color: #ffffff draw_text.text_style.font_size: 18 }
+                                        }
+                                    }
+
                                     layout_surface_keyboard := View {
                                         width: Fill
                                         height: Fit
@@ -1272,8 +1400,8 @@ script_mod! {
                                     height: Fit
                                     visible: state.current_screen == "layout_settings"
                                     flow: Down
-                                    spacing: 16
-                                    padding: 20
+                                    spacing: 8
+                                    padding: 12
                                     show_bg: true
                                     draw_bg +: { color: #x222630 }
 
@@ -1281,7 +1409,7 @@ script_mod! {
                                         width: Fill
                                         text: "Touchpad settings"
                                         draw_text.color: #f4f5f8
-                                        draw_text.text_style.font_size: 20
+                                        draw_text.text_style.font_size: 16
                                     }
 
                                     layout_touchpad_settings := View {
@@ -1312,6 +1440,67 @@ script_mod! {
                                         keyboard_layout_label := Label { width: Fill text: "Keyboard layout" draw_text.color: #c2c9d4 draw_text.text_style.font_size: 14 }
                                         keyboard_qwerty_choice := Button { width: Fill height: 42 text: "QWERTY   ·   English (US)" draw_bg.color: #292d37 draw_bg.color_hover: #363c49 draw_text.color: #e5e7ed }
                                         keyboard_repeat_toggle := Button { width: Fill height: 42 text: "Key repeat   ·   On" draw_bg.color: #292d37 draw_bg.color_hover: #363c49 draw_text.color: #e5e7ed }
+                                    }
+
+                                    layout_custom_settings := View {
+                                        width: Fill height: Fit visible: state.selected_layout_kind == "custom" flow: Down spacing: 6
+                                        custom_editor_intro := Label { width: Fill text: "Choose a control, then set its action and optional hardware button." draw_text.color: #aab6c5 draw_text.text_style.font_size: 12 }
+                                        custom_editor_columns := View {
+                                            width: Fill height: Fit flow: if state.is_narrow { Down } else { Right } spacing: 14
+                                            custom_editor_list := View {
+                                                width: Fill height: Fit flow: Down spacing: 6
+                                                custom_editor_row_1 := View {
+                                                    width: Fill height: 32 flow: Right spacing: 6
+                                                    custom_edit_1 := Button { width: Fill height: 32 text: "" draw_bg.color: #30445b draw_text.color: #ffffff }
+                                                    custom_edit_2 := Button { width: Fill height: 32 text: "" draw_bg.color: #30445b draw_text.color: #ffffff }
+                                                    custom_edit_3 := Button { width: Fill height: 32 text: "" draw_bg.color: #30445b draw_text.color: #ffffff }
+                                                }
+                                                custom_editor_row_2 := View {
+                                                    width: Fill height: 32 flow: Right spacing: 6
+                                                    custom_edit_4 := Button { width: Fill height: 32 text: "" draw_bg.color: #30445b draw_text.color: #ffffff }
+                                                    custom_edit_5 := Button { width: Fill height: 32 text: "" draw_bg.color: #30445b draw_text.color: #ffffff }
+                                                    custom_edit_6 := Button { width: Fill height: 32 text: "" draw_bg.color: #30445b draw_text.color: #ffffff }
+                                                }
+                                                custom_editor_manage := View {
+                                                    width: Fill height: 32 flow: Right spacing: 6
+                                                    custom_add := Button { width: Fill height: 32 text: "+ Add button" draw_bg.color: #3159a8 draw_text.color: #ffffff }
+                                                    custom_delete := Button { width: Fill height: 32 text: "Remove" draw_bg.color: #50323a draw_text.color: #ffffff }
+                                                }
+                                                custom_editor_order := View {
+                                                    width: Fill height: 32 flow: Right spacing: 6
+                                                    custom_move_left := Button { width: Fill height: 32 text: "Move left" draw_bg.color: #292d37 draw_text.color: #e5e7ed }
+                                                    custom_move_right := Button { width: Fill height: 32 text: "Move right" draw_bg.color: #292d37 draw_text.color: #e5e7ed }
+                                                }
+                                            }
+                                            custom_editor_details := View {
+                                                width: Fill height: Fit flow: Down spacing: 6
+                                                custom_editor_name := View {
+                                                    width: Fill height: 32 flow: Right spacing: 6
+                                                    custom_label_input := TextInput { width: Fill height: 32 empty_text: "Button label" }
+                                                    custom_label_save := Button { width: 90 height: 32 text: "Set label" draw_bg.color: #3159a8 draw_text.color: #ffffff }
+                                                }
+                                                custom_editor_groups := View {
+                                                    width: Fill height: 32 flow: Right spacing: 4
+                                                    custom_group_keyboard := Button { width: Fill height: 32 text: "Keys" draw_bg.color: #293b50 draw_text.color: #e8f4ff }
+                                                    custom_group_volume := Button { width: Fill height: 32 text: "Volume" draw_bg.color: #293b50 draw_text.color: #e8f4ff }
+                                                    custom_group_gamepad := Button { width: Fill height: 32 text: "Pad" draw_bg.color: #293b50 draw_text.color: #e8f4ff }
+                                                    custom_group_mouse := Button { width: Fill height: 32 text: "Mouse" draw_bg.color: #293b50 draw_text.color: #e8f4ff }
+                                                    custom_group_bluetooth := Button { width: Fill height: 32 text: "BT" draw_bg.color: #293b50 draw_text.color: #e8f4ff }
+                                                }
+                                                custom_editor_action := View {
+                                                    width: Fill height: 32 flow: Right spacing: 6
+                                                    custom_action_previous := Button { width: 44 height: 32 text: "‹" draw_bg.color: #292d37 draw_text.color: #ffffff draw_text.text_style.font_size: 16 }
+                                                    custom_action_label := Label { width: Fill height: 32 text: "Output" align: Align{ x: 0.5, y: 0.5 } draw_text.color: #e8f4ff draw_text.text_style.font_size: 14 }
+                                                    custom_action_next := Button { width: 44 height: 32 text: "›" draw_bg.color: #292d37 draw_text.color: #ffffff draw_text.text_style.font_size: 16 }
+                                                }
+                                                custom_editor_hardware := View {
+                                                    width: Fill height: 32 flow: Right spacing: 6
+                                                    custom_learn := Button { width: Fill height: 32 text: "Assign hardware button" draw_bg.color: #3159a8 draw_text.color: #ffffff }
+                                                    custom_unbind := Button { width: 70 height: 32 text: "Clear" draw_bg.color: #292d37 draw_text.color: #e5e7ed }
+                                                }
+                                                custom_editor_status := Label { width: Fill height: Fit text: "Changes are saved on this device." draw_text.color: #aab6c5 draw_text.text_style.font_size: 12 }
+                                            }
+                                        }
                                     }
                                 }
                                 }
@@ -1444,6 +1633,14 @@ pub struct App {
     #[rust]
     layout_status: String,
     #[rust]
+    custom_selected_control: usize,
+    #[rust]
+    custom_learning: bool,
+    #[rust]
+    custom_status: String,
+    #[rust]
+    active_controls: ActiveControls,
+    #[rust]
     pointer_speed: u8,
     #[rust]
     tap_to_click: bool,
@@ -1494,6 +1691,10 @@ impl ScriptHook for App {
         self.create_layout_kind = LayoutKind::Touchpad;
         self.create_layout_open = false;
         self.layout_status = "Choose a name and a control surface.".into();
+        self.custom_selected_control = 0;
+        self.custom_learning = false;
+        self.custom_status = "Changes are saved on this device.".into();
+        self.active_controls = ActiveControls::default();
         self.pointer_speed = 1;
         self.tap_to_click = true;
         self.natural_scrolling = false;
@@ -1604,6 +1805,16 @@ impl MatchEvent for App {
             self.layout_status = "New layout type: Gamepad.".into();
             self.render_layouts(cx);
         }
+        if self
+            .ui
+            .button(cx, ids!(layout_create_custom))
+            .clicked(actions)
+        {
+            self.create_layout_kind = LayoutKind::Custom;
+            self.layout_status =
+                "Custom controls: add buttons and map hardware after saving.".into();
+            self.render_layouts(cx);
+        }
         if self.ui.button(cx, ids!(layout_cancel)).clicked(actions) {
             self.create_layout_open = false;
             self.render_layouts(cx);
@@ -1623,6 +1834,11 @@ impl MatchEvent for App {
                 let layout = SavedLayout {
                     name: name.clone(),
                     kind: self.create_layout_kind,
+                    controls: if self.create_layout_kind == LayoutKind::Custom {
+                        default_custom_controls()
+                    } else {
+                        Vec::new()
+                    },
                 };
                 self.saved_layouts.push(layout);
                 match persist_saved_layouts(&self.saved_layouts) {
@@ -1694,6 +1910,7 @@ impl MatchEvent for App {
                 self.send_bluetooth_command(BluetoothCommand::HidGamepadHat(direction));
             }
         }
+        self.handle_custom_actions(cx, actions);
         self.handle_keyboard_actions(cx, actions);
 
         if self
@@ -1705,11 +1922,17 @@ impl MatchEvent for App {
                 .button(cx, ids!(landscape_settings_button))
                 .clicked(actions)
         {
+            self.release_custom_controls();
             self.layout_surface_active = false;
+            self.custom_learning = false;
+            self.load_custom_label(cx);
             script_eval!(cx, {
                 mod.state.current_screen = "layout_settings";
                 ui.main_view.render()
             });
+            self.ui
+                .view(cx, ids!(scroll_body))
+                .set_scroll_pos(cx, dvec2(0.0, 0.0));
             self.render_layouts(cx);
         }
 
@@ -1719,12 +1942,16 @@ impl MatchEvent for App {
             .clicked(actions)
         {
             self.layout_surface_active = true;
+            self.custom_learning = false;
             #[cfg(target_os = "android")]
             self.request_hid_start();
             script_eval!(cx, {
                 mod.state.current_screen = "layout_surface";
                 ui.main_view.render()
             });
+            self.ui
+                .view(cx, ids!(scroll_body))
+                .set_scroll_pos(cx, dvec2(0.0, 0.0));
             self.render_layouts(cx);
         }
 
@@ -1868,6 +2095,8 @@ impl MatchEvent for App {
         }
 
         if self.ui.button(cx, ids!(nav_devices)).clicked(actions) {
+            self.release_custom_controls();
+            self.custom_learning = false;
             self.layout_surface_active = false;
             self.hid_start_pending = false;
             self.device_detail_open = false;
@@ -1883,6 +2112,8 @@ impl MatchEvent for App {
         }
 
         if self.ui.button(cx, ids!(nav_layouts)).clicked(actions) {
+            self.release_custom_controls();
+            self.custom_learning = false;
             self.layout_surface_active = false;
             self.hid_start_pending = false;
             self.device_detail_open = false;
@@ -1938,7 +2169,12 @@ impl AppMain for App {
 
     fn handle_event(&mut self, cx: &mut Cx, event: &Event) {
         self.handle_touchpad_input(cx, event);
+        self.handle_custom_key(cx, event);
         match event {
+            Event::Pause | Event::Background | Event::WindowLostFocus(_) | Event::Shutdown => {
+                self.release_custom_controls();
+                self.custom_learning = false;
+            }
             Event::Startup => {
                 log!("[OpenWASD][Bluetooth] app startup; starting connected-device refresh timer");
                 self.bluetooth_timer = Some(cx.start_interval(0.2));
@@ -2103,6 +2339,332 @@ impl App {
             report[2] = usage;
         }
         self.send_bluetooth_command(BluetoothCommand::HidKey(report));
+    }
+
+    fn selected_custom_control(&self, index: usize) -> Option<CustomControl> {
+        self.selected_custom_layout
+            .and_then(|layout| self.saved_layouts.get(layout))
+            .filter(|layout| layout.kind == LayoutKind::Custom)
+            .and_then(|layout| layout.controls.get(index))
+            .cloned()
+    }
+
+    fn save_custom_changes(&mut self) {
+        self.custom_status = match persist_saved_layouts(&self.saved_layouts) {
+            Ok(()) => "Saved on this device.".into(),
+            Err(error) => format!("Could not save: {error}"),
+        };
+    }
+
+    fn load_custom_label(&self, cx: &mut Cx) {
+        let label = self
+            .selected_custom_control(self.custom_selected_control)
+            .map(|control| control.label)
+            .unwrap_or_default();
+        self.ui
+            .text_input(cx, ids!(custom_label_input))
+            .set_text(cx, &label);
+    }
+
+    fn custom_report(&mut self, action: ControlAction) {
+        let reports = self.active_controls.reports();
+        match action {
+            ControlAction::Keyboard(_) => {
+                self.send_bluetooth_command(BluetoothCommand::HidKeyboard(reports.keyboard))
+            }
+            ControlAction::GamepadButton(_) => {
+                self.send_bluetooth_command(BluetoothCommand::HidGamepad(reports.gamepad))
+            }
+            ControlAction::MouseButton(_) => {
+                self.send_bluetooth_command(BluetoothCommand::HidMouse {
+                    buttons: reports.mouse_buttons as i8,
+                    dx: 0,
+                    dy: 0,
+                    wheel: 0,
+                })
+            }
+            ControlAction::BluetoothSettings => {}
+        }
+    }
+
+    fn press_custom_control(&mut self, source: String, action: ControlAction) {
+        if action == ControlAction::BluetoothSettings {
+            open_system_bluetooth_settings();
+            return;
+        }
+        self.active_controls.press(source, action);
+        self.custom_report(action);
+    }
+
+    fn release_custom_control(&mut self, source: &str, action: ControlAction) {
+        self.active_controls.release(source);
+        self.custom_report(action);
+    }
+
+    fn release_custom_controls(&mut self) {
+        if self.active_controls.is_empty() {
+            return;
+        }
+        self.active_controls.clear();
+        self.custom_report(ControlAction::Keyboard(0));
+        self.custom_report(ControlAction::GamepadButton(0));
+        self.custom_report(ControlAction::MouseButton(0));
+    }
+
+    fn handle_custom_key(&mut self, cx: &mut Cx, event: &Event) {
+        let (name, down) = match event {
+            Event::KeyDown(key) if !key.is_repeat => (format!("{:?}", key.key_code), true),
+            Event::KeyUp(key) => (format!("{:?}", key.key_code), false),
+            _ => return,
+        };
+        if name == "Unknown" {
+            return;
+        }
+        if self.custom_learning && down {
+            if let Some(layout_index) = self.selected_custom_layout {
+                if let Some(layout) = self.saved_layouts.get_mut(layout_index) {
+                    for control in &mut layout.controls {
+                        if control.hardware_key.as_deref() == Some(&name) {
+                            control.hardware_key = None;
+                        }
+                    }
+                    if let Some(control) = layout.controls.get_mut(self.custom_selected_control) {
+                        control.hardware_key = Some(name.clone());
+                        self.custom_learning = false;
+                        self.save_custom_changes();
+                        self.custom_status = format!("Assigned {name}. {}", self.custom_status);
+                        self.render_layouts(cx);
+                    }
+                }
+            }
+            return;
+        }
+        if !self.layout_surface_active || self.selected_layout_kind != LayoutKind::Custom {
+            return;
+        }
+        let action = self
+            .selected_custom_layout
+            .and_then(|index| self.saved_layouts.get(index))
+            .and_then(|layout| {
+                layout
+                    .controls
+                    .iter()
+                    .find(|control| control.hardware_key.as_deref() == Some(&name))
+            })
+            .map(|control| control.action);
+        if let Some(action) = action {
+            let source = format!("hardware:{name}");
+            if down {
+                self.press_custom_control(source, action);
+            } else {
+                self.release_custom_control(&source, action);
+            }
+        }
+    }
+
+    fn handle_custom_actions(&mut self, cx: &mut Cx, actions: &Actions) {
+        let surface_ids = [
+            live_id!(custom_surface_1),
+            live_id!(custom_surface_2),
+            live_id!(custom_surface_3),
+            live_id!(custom_surface_4),
+            live_id!(custom_surface_5),
+            live_id!(custom_surface_6),
+        ];
+        if self.layout_surface_active && self.selected_layout_kind == LayoutKind::Custom {
+            for (index, id) in surface_ids.into_iter().enumerate() {
+                if let Some(control) = self.selected_custom_control(index) {
+                    let button = self.ui.button(cx, &[id]);
+                    let source = format!("touch:{index}");
+                    if control.action == ControlAction::BluetoothSettings {
+                        if button.clicked(actions) {
+                            self.press_custom_control(source, control.action);
+                        }
+                    } else {
+                        if button.pressed(actions) {
+                            self.press_custom_control(source.clone(), control.action);
+                        }
+                        if button.clicked(actions) || button.released(actions) {
+                            self.release_custom_control(&source, control.action);
+                        }
+                    }
+                }
+            }
+        }
+        if self.layout_surface_active || self.selected_layout_kind != LayoutKind::Custom {
+            return;
+        }
+        let Some(layout_index) = self.selected_custom_layout else {
+            return;
+        };
+        let edit_ids = [
+            live_id!(custom_edit_1),
+            live_id!(custom_edit_2),
+            live_id!(custom_edit_3),
+            live_id!(custom_edit_4),
+            live_id!(custom_edit_5),
+            live_id!(custom_edit_6),
+        ];
+        for (index, id) in edit_ids.into_iter().enumerate() {
+            if self.ui.button(cx, &[id]).clicked(actions)
+                && self.selected_custom_control(index).is_some()
+            {
+                self.custom_selected_control = index;
+                self.custom_learning = false;
+                self.load_custom_label(cx);
+                self.render_layouts(cx);
+            }
+        }
+        if self.ui.button(cx, ids!(custom_add)).clicked(actions) {
+            if let Some(layout) = self.saved_layouts.get_mut(layout_index) {
+                if layout.controls.len() < CUSTOM_LIMIT {
+                    layout.controls.push(CustomControl {
+                        label: format!("Button {}", layout.controls.len() + 1),
+                        action: ControlAction::Keyboard(44),
+                        hardware_key: None,
+                    });
+                    self.custom_selected_control = layout.controls.len() - 1;
+                    self.save_custom_changes();
+                    self.load_custom_label(cx);
+                } else {
+                    self.custom_status = "This layout can contain up to six buttons.".into();
+                }
+            }
+            self.render_layouts(cx);
+        }
+        if self.ui.button(cx, ids!(custom_delete)).clicked(actions) {
+            if let Some(layout) = self.saved_layouts.get_mut(layout_index) {
+                if self.custom_selected_control < layout.controls.len() {
+                    layout.controls.remove(self.custom_selected_control);
+                    self.custom_selected_control = self
+                        .custom_selected_control
+                        .min(layout.controls.len().saturating_sub(1));
+                    self.custom_learning = false;
+                    self.save_custom_changes();
+                    self.load_custom_label(cx);
+                }
+            }
+            self.render_layouts(cx);
+        }
+        let move_left = self.ui.button(cx, ids!(custom_move_left)).clicked(actions);
+        let move_right = self.ui.button(cx, ids!(custom_move_right)).clicked(actions);
+        if move_left || move_right {
+            if let Some(layout) = self.saved_layouts.get_mut(layout_index) {
+                let from = self.custom_selected_control;
+                let to = if move_left {
+                    from.checked_sub(1)
+                } else {
+                    from.checked_add(1)
+                };
+                if let Some(to) =
+                    to.filter(|to| *to < layout.controls.len() && from < layout.controls.len())
+                {
+                    layout.controls.swap(from, to);
+                    self.custom_selected_control = to;
+                    self.save_custom_changes();
+                }
+            }
+            self.render_layouts(cx);
+        }
+        if self.ui.button(cx, ids!(custom_label_save)).clicked(actions) {
+            let label = self
+                .ui
+                .text_input(cx, ids!(custom_label_input))
+                .text()
+                .trim()
+                .to_string();
+            if label.is_empty() {
+                self.custom_status = "Enter a button label.".into();
+            } else if let Some(control) = self
+                .saved_layouts
+                .get_mut(layout_index)
+                .and_then(|layout| layout.controls.get_mut(self.custom_selected_control))
+            {
+                control.label = label.chars().take(24).collect();
+                self.save_custom_changes();
+            }
+            self.render_layouts(cx);
+        }
+        for (id, action) in [
+            (live_id!(custom_group_keyboard), ControlAction::Keyboard(44)),
+            (live_id!(custom_group_volume), ControlAction::Keyboard(128)),
+            (
+                live_id!(custom_group_gamepad),
+                ControlAction::GamepadButton(0),
+            ),
+            (live_id!(custom_group_mouse), ControlAction::MouseButton(1)),
+            (
+                live_id!(custom_group_bluetooth),
+                ControlAction::BluetoothSettings,
+            ),
+        ] {
+            if self.ui.button(cx, &[id]).clicked(actions) {
+                if let Some(control) = self
+                    .saved_layouts
+                    .get_mut(layout_index)
+                    .and_then(|layout| layout.controls.get_mut(self.custom_selected_control))
+                {
+                    control.action = action;
+                    self.save_custom_changes();
+                }
+                self.render_layouts(cx);
+            }
+        }
+        let previous = self
+            .ui
+            .button(cx, ids!(custom_action_previous))
+            .clicked(actions);
+        let next = self
+            .ui
+            .button(cx, ids!(custom_action_next))
+            .clicked(actions);
+        if previous || next {
+            if let Some(control) = self
+                .saved_layouts
+                .get_mut(layout_index)
+                .and_then(|layout| layout.controls.get_mut(self.custom_selected_control))
+            {
+                let group = custom_output_group(control.action);
+                let choices: Vec<ControlAction> = CUSTOM_OUTPUTS
+                    .iter()
+                    .map(|(_, action)| *action)
+                    .filter(|action| custom_output_group(*action) == group)
+                    .collect();
+                let current = choices
+                    .iter()
+                    .position(|action| *action == control.action)
+                    .unwrap_or(0);
+                let target = if previous {
+                    (current + choices.len() - 1) % choices.len()
+                } else {
+                    (current + 1) % choices.len()
+                };
+                control.action = choices[target];
+                self.save_custom_changes();
+            }
+            self.render_layouts(cx);
+        }
+        if self.ui.button(cx, ids!(custom_learn)).clicked(actions)
+            && self
+                .selected_custom_control(self.custom_selected_control)
+                .is_some()
+        {
+            self.custom_learning = true;
+            self.custom_status = "Press the hardware button you want to assign.".into();
+            self.render_layouts(cx);
+        }
+        if self.ui.button(cx, ids!(custom_unbind)).clicked(actions) {
+            if let Some(control) = self
+                .saved_layouts
+                .get_mut(layout_index)
+                .and_then(|layout| layout.controls.get_mut(self.custom_selected_control))
+            {
+                control.hardware_key = None;
+                self.custom_learning = false;
+                self.save_custom_changes();
+            }
+            self.render_layouts(cx);
+        }
     }
 
     fn handle_keyboard_actions(&mut self, cx: &mut Cx, actions: &Actions) {
@@ -2351,6 +2913,9 @@ impl App {
         name: &str,
         cx: &mut Cx,
     ) {
+        self.release_custom_controls();
+        self.custom_learning = false;
+        self.custom_selected_control = 0;
         self.selected_layout_kind = kind;
         self.selected_custom_layout = custom_index;
         self.layout_surface_active = true;
@@ -2360,6 +2925,7 @@ impl App {
             LayoutKind::Keyboard => "keyboard",
             LayoutKind::Gamepad => "gamepad",
             LayoutKind::Touchpad => "touchpad",
+            LayoutKind::Custom => "custom",
         };
         script_eval!(cx, {
             mod.state.current_screen = "layout_surface";
@@ -2367,6 +2933,9 @@ impl App {
             mod.state.sidebar_collapsed = true;
             ui.main_view.render()
         });
+        self.ui
+            .view(cx, ids!(scroll_body))
+            .set_scroll_pos(cx, dvec2(0.0, 0.0));
         self.ui
             .label(cx, ids!(layout_settings_name))
             .set_text(cx, &format!("{name} settings"));
@@ -2379,6 +2948,18 @@ impl App {
             .set_visible(cx, self.create_layout_open);
         let is_keyboard = self.selected_layout_kind == LayoutKind::Keyboard;
         let is_touchpad = self.selected_layout_kind == LayoutKind::Touchpad;
+        let is_custom = self.selected_layout_kind == LayoutKind::Custom;
+        let control_count = self
+            .selected_custom_layout
+            .and_then(|index| self.saved_layouts.get(index))
+            .map(|layout| layout.controls.len())
+            .unwrap_or(0);
+        self.ui
+            .widget(cx, ids!(custom_surface_row_2))
+            .set_visible(cx, is_custom && control_count > 3);
+        self.ui
+            .widget(cx, ids!(custom_editor_row_2))
+            .set_visible(cx, is_custom && control_count > 3);
         self.ui.view(cx, ids!(touchpad_surface)).set_walk(
             cx,
             Walk::new(
@@ -2421,11 +3002,17 @@ impl App {
             .widget(cx, ids!(layout_surface_gamepad))
             .set_visible(cx, self.selected_layout_kind == LayoutKind::Gamepad);
         self.ui
+            .widget(cx, ids!(layout_surface_custom))
+            .set_visible(cx, is_custom);
+        self.ui
             .widget(cx, ids!(layout_touchpad_settings))
             .set_visible(cx, is_touchpad);
         self.ui
             .widget(cx, ids!(layout_keyboard_settings))
             .set_visible(cx, is_keyboard);
+        self.ui
+            .widget(cx, ids!(layout_custom_settings))
+            .set_visible(cx, is_custom);
         let preview_name = self
             .selected_custom_layout
             .and_then(|index| self.saved_layouts.get(index))
@@ -2467,6 +3054,107 @@ impl App {
         self.ui
             .label(cx, ids!(layout_save_status))
             .set_text(cx, &self.layout_status);
+        for (kind, id, title) in [
+            (
+                LayoutKind::Keyboard,
+                live_id!(layout_create_keyboard),
+                "Full keyboard",
+            ),
+            (
+                LayoutKind::Touchpad,
+                live_id!(layout_create_touchpad),
+                "Touchpad",
+            ),
+            (
+                LayoutKind::Gamepad,
+                live_id!(layout_create_gamepad),
+                "Gamepad",
+            ),
+            (
+                LayoutKind::Custom,
+                live_id!(layout_create_custom),
+                "Custom controls",
+            ),
+        ] {
+            self.ui.button(cx, &[id]).set_text(
+                cx,
+                &format!(
+                    "{}{}",
+                    if self.create_layout_kind == kind {
+                        "✓ "
+                    } else {
+                        ""
+                    },
+                    title
+                ),
+            );
+        }
+        let surface_ids = [
+            live_id!(custom_surface_1),
+            live_id!(custom_surface_2),
+            live_id!(custom_surface_3),
+            live_id!(custom_surface_4),
+            live_id!(custom_surface_5),
+            live_id!(custom_surface_6),
+        ];
+        let edit_ids = [
+            live_id!(custom_edit_1),
+            live_id!(custom_edit_2),
+            live_id!(custom_edit_3),
+            live_id!(custom_edit_4),
+            live_id!(custom_edit_5),
+            live_id!(custom_edit_6),
+        ];
+        for (index, (surface_id, edit_id)) in surface_ids.into_iter().zip(edit_ids).enumerate() {
+            let control = self.selected_custom_control(index);
+            self.ui
+                .widget(cx, &[surface_id])
+                .set_visible(cx, is_custom && control.is_some());
+            self.ui
+                .widget(cx, &[edit_id])
+                .set_visible(cx, is_custom && control.is_some());
+            if let Some(control) = control {
+                self.ui
+                    .button(cx, &[surface_id])
+                    .set_text(cx, &control.label);
+                self.ui.button(cx, &[edit_id]).set_text(
+                    cx,
+                    &format!(
+                        "{}{}",
+                        if index == self.custom_selected_control {
+                            "● "
+                        } else {
+                            ""
+                        },
+                        control.label
+                    ),
+                );
+            }
+        }
+        let selected_control = self.selected_custom_control(self.custom_selected_control);
+        self.ui.label(cx, ids!(custom_action_label)).set_text(
+            cx,
+            selected_control
+                .as_ref()
+                .map(|control| custom_output_label(control.action))
+                .unwrap_or("Add a button to choose an action"),
+        );
+        self.ui.button(cx, ids!(custom_learn)).set_text(
+            cx,
+            &if self.custom_learning {
+                "Press a hardware button…".to_string()
+            } else if let Some(key) = selected_control
+                .as_ref()
+                .and_then(|control| control.hardware_key.as_ref())
+            {
+                format!("Hardware: {key}  ·  Change")
+            } else {
+                "Assign hardware button".to_string()
+            },
+        );
+        self.ui
+            .label(cx, ids!(custom_editor_status))
+            .set_text(cx, &self.custom_status);
         for (index, id, label) in [
             (0, live_id!(pointer_slow), "Slow"),
             (1, live_id!(pointer_standard), "Standard"),
@@ -2930,6 +3618,9 @@ impl App {
                 self.render_layouts(cx);
             }
             BluetoothEvent::HidHost(host) => {
+                if self.hid_host.name != host.name {
+                    self.release_custom_controls();
+                }
                 if !self.hid_host_state_seen || self.hid_host != host {
                     log!(
                         "[OpenWASD][HID] host state: name={:?} report_mask=0x{:02x} mouse_ready={} keyboard_ready={} gamepad_ready={}",
@@ -2977,6 +3668,10 @@ fn state_label(state: &ConnectionState) -> &'static str {
 }
 
 fn open_system_bluetooth_settings() {
+    #[cfg(target_os = "android")]
+    if let Err(error) = openwasd_bluetooth::open_android_bluetooth_settings() {
+        log!("[OpenWASD][Bluetooth] could not open system settings: {error}");
+    }
     #[cfg(target_os = "macos")]
     let _ = Command::new("open")
         .arg("x-apple.systempreferences:com.apple.BluetoothSettings")
