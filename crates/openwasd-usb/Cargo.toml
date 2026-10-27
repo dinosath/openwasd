@@ -1,0 +1,17 @@
+[package]
+name = "openwasd-usb"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+[target.'cfg(target_os = "linux")'.dependencies]
+openwasd-output = { path = "../openwasd-output" }
+nusb = "0.2.9"
+
+[target.'cfg(target_os = "android")'.dependencies]
+jni = "0.21.1"
+makepad-android-state = "0.1.0"
+
+[target.'cfg(target_os = "linux")'.dev-dependencies]
+evdev = "0.13.2"

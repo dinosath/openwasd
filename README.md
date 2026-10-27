@@ -10,9 +10,39 @@ OpenWASD is a cross-platform input control workspace built around a shared Rust 
 - Transport-neutral Bluetooth session queues for platform adapters to connect devices and pass normalized packets into the engine.
 - Phase 1 Bluetooth workspace with live `btleplug` discovery, RSSI, device selection, pairing/OS-settings messaging, and connect/disconnect state updates.
 - Connectivity strip for Bluetooth, USB, and Wi-Fi companion routes.
+- Light, touch-friendly Devices and Layouts navigation with teal control surfaces.
 - reWASD-inspired mapping workspace with profile/device toolbar, layer rail, controller preview, mapping editor, link-health inspector, and safe-stop affordance.
 
 The Bluetooth service uses the [`dinosath/btleplug` fork](https://github.com/dinosath/btleplug/tree/codex/openwasd-bluetooth-features) for BLE central scanning, GATT connections, and the `Central::connected_peripherals()` API on supported platforms, including macOS and Android. Its Android BLE HID-over-GATT support handles mouse and keyboard reports; OpenWASD's Android adapter exposes start/stop, report, and connected-host methods, and the touchpad and click controls send HID reports through that adapter.
+
+### Android controls over USB on Linux (development)
+
+The Linux Devices screen lists attached USB devices. Select an Android device
+to request Android Open Accessory mode and connect its OpenWASD app directly
+over USB. This runtime transport uses `nusb`; it does not use ADB or require
+USB debugging. Android accessory-mode support depends on the device. The Linux
+user also needs permission to access the USB device and `/dev/uinput`.
+
+Once connected, each Android companion gets its own Linux virtual gamepad,
+keyboard and mouse. Select it again to disconnect. Those virtual devices are
+removed on disconnect or app exit. Select **View incoming input** to inspect
+recent reports. Open a gamepad, keyboard, touchpad or custom layout on the
+Android device; reports use USB while the session is active, otherwise the
+existing Bluetooth HID route is used.
+
+Installing or launching the Android app with Cargo Makepad can use ADB and may
+require accepting Android's USB debugging prompt. That is a development and
+deployment step; it is not needed for the app's USB accessory connection.
+Open Accessory mode is a device-side USB feature, not generic USB HID. Analog
+control widgets, configurable multi-route profiles, and device-specific
+Bluetooth input inspection remain future work.
+
+With `/dev/uinput` access and permission to read the resulting input devices,
+run the Linux virtual-gamepad hardware check:
+
+```sh
+cargo test -p openwasd-output -- --ignored
+```
 
 ### Custom companion controls
 

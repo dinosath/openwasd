@@ -213,6 +213,22 @@ host-side input behavior and volume still require independent verification.
 The local Makepad and btleplug commits documented in the README must be
 published before the Git dependencies reproduce the tested build.
 
+The Devices screen lists Linux USB hardware alongside Bluetooth. The original
+Android companion bridge used ADB reverse forwarding; that implementation has
+been replaced with Android Open Accessory mode over `nusb`, so runtime USB input
+does not require USB debugging. Android opens the accessory through its USB
+framework API, while Linux performs the AOA negotiation and bulk transfers in
+Rust. Separate Linux uinput gamepad, keyboard and mouse devices are created per
+session and removed when the session ends. The USB crate checks on Android and
+Linux, the Android APK builds, and the Linux uinput output path is
+hardware-tested. End-to-end testing on a Retroid Pocket 5 verified AOA
+negotiation, accessory permission, a sustained connection, and an on-screen
+gamepad button reaching Linux as a `BTN_SOUTH` press and release through uinput.
+The stream now carries a synchronization marker with each report so the host
+can attach or reconnect while the Android app is already running. Accessory-mode
+support and Linux USB permissions vary by device and system configuration.
+Device-specific Bluetooth input inspection remains unavailable.
+
 ### Phase 4 — Profiles and routing
 
 Add Profiles, Configs, device groups, Sub-configs, Layers, trigger conditions,
