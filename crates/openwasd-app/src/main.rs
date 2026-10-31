@@ -373,7 +373,9 @@ fn OpenWASDApp() -> Element {
                                         rsx! { article { class: "device-row",
                                             div { class: "device-symbol", "◉" }
                                             div { class: "device-info", h3 { "{name}" }, p { "{state_name} · {device_signal}" } }
-                                            button { class: "button secondary", onclick: move |_| row_backend.send(device_command.clone()), "{device_action}" }
+                                            if !device.id.starts_with("system:") {
+                                                button { class: "button secondary", onclick: move |_| row_backend.send(device_command.clone()), "{device_action}" }
+                                            }
                                         } }
                                     }
                                     }
