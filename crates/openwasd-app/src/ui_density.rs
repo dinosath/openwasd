@@ -35,7 +35,7 @@ impl UiDensity {
                 40
             },
             page_gap: if is_android { 6 } else { 12 },
-            header_button_size: if is_android { 32 } else { 42 },
+            header_button_size: if compact { 32 } else { 42 },
             surface_title_size: if is_android {
                 17
             } else if narrow {

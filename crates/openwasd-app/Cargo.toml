@@ -5,20 +5,29 @@ edition = "2024"
 license = "MIT"
 description = "OpenWASD cross-platform input mapping workspace"
 
+[[bin]]
+name = "openwasd"
+path = "src/main.rs"
+
+[[bin]]
+name = "openwasd-makepad"
+path = "src/main_makepad.rs"
+required-features = ["legacy-makepad"]
+
 [dependencies]
+dioxus = { version = "0.7.10", default-features = false, features = ["lib", "launch"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 openwasd-core = { path = "../openwasd-core" }
 openwasd-usb = { path = "../openwasd-usb" }
 openwasd-bluetooth = { path = "../openwasd-bluetooth", features = ["btleplug"] }
-makepad-widgets = { git = "https://github.com/kevinaboos/makepad", branch = "wayland_restore_maximized_not_fullscreen", features = ["serde"] }
-robius-use-makepad = "0.1.1"
+makepad-widgets = { git = "https://github.com/makepad/makepad", branch = "main", optional = true }
 robius-directories = { git = "https://github.com/project-robius/robius" }
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time"] }
 
 [features]
-default = []
+default = ["desktop"]
+desktop = ["dioxus/desktop"]
+mobile = ["dioxus/mobile", "openwasd-bluetooth/dioxus-android"]
+legacy-makepad = ["dep:makepad-widgets"]
 hide_windows_console = []
-
-[package.metadata.makepad.android]
-min_sdk_version = 28

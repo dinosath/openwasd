@@ -19,8 +19,9 @@ objc2-foundation = { version = "0.3.2", features = ["NSArray", "NSString"] }
 
 [target.'cfg(target_os = "android")'.dependencies]
 jni = { version = "0.21", default-features = false }
-robius-android-env = { version = "0.2.0", default-features = false, features = ["makepad"] }
+robius-android-env = { version = "0.2.0", default-features = false, features = ["ndk-context"] }
 
 [features]
 default = []
 btleplug = ["dep:btleplug"]
+dioxus-android = ["btleplug/dioxus-ffi"]

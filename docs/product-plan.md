@@ -179,7 +179,7 @@ Complexity is relative product complexity: S, M, L, or XL. Platform dependencies
 | Permission center | Explain and manage OS permissions | Prevents confusing setup failures | M | Per-platform permission APIs |
 | Safe stop / panic action | Immediately disable mappings and virtual outputs | User control and risk reduction | S | Adapter shutdown behavior |
 | Diagnostics and logs | Consent-based logs for device, transport, and profile behavior | Faster support and debugging | M | Local storage and privacy |
-| Localization and theming | Translate UI and support light/dark/high-contrast themes | Wider adoption | M | Makepad and asset pipeline |
+| Localization and theming | Translate UI and support light/dark/high-contrast themes | Wider adoption | M | Dioxus and asset pipeline |
 
 ## 5. MVP definition (v1)
 
@@ -188,7 +188,7 @@ The MVP should prove that OpenWASD is a dependable remapper, not attempt to solv
 ### Required for v1
 
 - Desktop-first support for Windows and Linux, with macOS discovery and remapping scoped according to validated OS capabilities.
-- Makepad desktop UI with device list, event tester, profile list, mapping editor, layer indicator, and safe-stop control.
+- Cross-platform desktop UI with device list, event tester, profile list, mapping editor, layer indicator, and safe-stop control.
 - Generic gamepad, keyboard, and mouse discovery where permitted.
 - Bluetooth and USB connectivity for local devices, plus Wi-Fi connectivity for local companion and network-input scenarios where supported.
 - Button remapping, axis inversion/sensitivity, dead zones, tap/hold, toggle, and one momentary layer.
