@@ -1,11 +1,27 @@
 # OpenWASD: research, architecture, and Phase 1 roadmap
 
-Status: research and technical design
+Status: research and technical design. The implementation stack has since
+moved from Makepad to Dioxus; the historical Makepad-specific design notes below
+remain as context and should be revised as each roadmap phase is revisited.
 
 This document combines the product capabilities of reWASD and BLEK into a
 realistic roadmap for OpenWASD, while keeping the first implementation narrow:
 cross-platform Bluetooth discovery, pairing, connection management, and a
-Makepad UI for connecting two devices.
+cross-platform UI for connecting two devices.
+
+## Current implementation note (2026-10)
+
+The default `openwasd` application uses Dioxus 0.7 for its main navigation,
+Bluetooth device discovery and connection, built-in input surfaces, custom
+layout creation, and digital button editing. The old Makepad UI remains behind
+the optional `legacy-makepad` feature during the transition. An Android APK has
+been built, installed, and launched on an emulator and a Retroid Pocket 5.
+btleplug's Android Java sources are included in the Dioxus APK through
+Manganis FFI metadata. The emulator starts a BLE scan without the former Java
+class-loading error; no nearby device was found in that check. On the Retroid,
+the custom layout opened, Android registered the HID service, and btleplug
+returned BLE peripherals during scanning. HID report delivery to a host still
+needs a separate end-to-end check.
 
 ## 1. Executive summary
 
@@ -204,14 +220,44 @@ generalizing.
 
 An initial Android custom-controls editor now saves up to six ordered screen
 buttons per layout, with keyboard, volume, mouse-button, gamepad-button and
-Bluetooth-settings actions and optional learned hardware buttons. Controls
-aggregate held inputs and send releases when leaving the surface. It is a fixed
-grid with digital buttons; free placement, analog controls and background
-remapping remain future work. The Retroid Pocket 5 build and editor were checked
-on device, and Android queued press/release reports for a connected Bazzite host;
-host-side input behavior and volume still require independent verification.
+Bluetooth-settings actions and optional learned hardware buttons. The custom
+surface now has an Edit mode for adding, duplicating, removing, and reordering
+buttons, with a separate detail view for labels, outputs, and learned hardware
+buttons. In Edit mode, a compact notice explains that tapping a button opens
+its editor and long-press dragging moves it; returning from the detail view
+preserves Edit mode. The edit header shows the layout name, then switches to the
+selected button name in its detail view. The detail editor provides Keyboard
+shortcut, Function, Text, Hardware buttons, and Settings tabs. Keyboard shortcuts currently select
+one HID key at a time; Function lists supported OpenWASD actions, and Text sends
+ASCII using the US keyboard layout. Hardware button assignment has its own tab.
+The Settings tab edits the button name and controls label/icon visibility, with
+action-based default icons or a custom emoji/symbol. Edit controls are compact and draggable;
+page titles, subtitles, icon buttons, and layout controls now share reusable
+style components based on the Touchpad page toolbar and controls. The shared
+top bar now uses the Gamepad toolbar's density-sized height on every page. On
+the Layouts page, the subtitle stays inside the pinned top bar in smaller type,
+and the layouts card uses a tighter top inset. The Add menu exposes Button,
+Touchpad, Speech input, and Keyboard toggle. Only
+Button creation is implemented; the other choices report their current lack of
+custom-layout support. Long-press drag swaps buttons between grid slots, and
+move controls remain available as an alternative outside the focused editor.
+Controls aggregate held inputs and send releases when leaving the surface.
+Buttons still occupy a fixed six-slot grid; free placement, styling, analog
+controls, and background remapping remain future work. The legacy Makepad
+Retroid Pocket 5 build and editor were checked on device, including adding,
+removing, and dragging a control; Android queued press/release reports for a
+connected Bazzite host. Those checks predate the Dioxus app and do not validate
+its package or runtime behavior. Host-side input behavior and volume still
+require independent verification.
+The Layouts page also exposes a Custom controls entry on every platform; it
+opens custom-layout creation regardless of the currently active input backend.
+The top-bar plus opens a dedicated New layout page; the page returns to Layouts
+from its back arrow or Cancel action. Creation asks only for a name, then saves
+a custom layout with one default button named `clickme`. On a custom layout
+surface, Edit and Settings remain available together; Edit exposes the Add
+button menu.
 The local Makepad and btleplug commits documented in the README must be
-published before the Git dependencies reproduce the tested build.
+published before the legacy Makepad build can reproduce those earlier checks.
 
 The Devices screen lists Linux USB hardware alongside Bluetooth. The original
 Android companion bridge used ADB reverse forwarding; that implementation has

@@ -1,17 +1,15 @@
 # OpenWASD
 
-OpenWASD is a cross-platform input control workspace built around a shared Rust engine, Makepad UI, and Robius platform foundations.
+OpenWASD is a cross-platform input control workspace built around a shared Rust engine, Dioxus UI, and Robius platform foundations.
 
 ## Current implementation
 
-- `crates/openwasd-core`: portable profiles, layers, mappings, device state, and Bluetooth/USB/Wi-Fi transport types.
-- `crates/openwasd-app`: Makepad application shell inspired by Robrix's script-driven app structure.
-- Collapsible virtual-device sidebar with explicit virtual-to-physical routing.
-- Transport-neutral Bluetooth session queues for platform adapters to connect devices and pass normalized packets into the engine.
-- Phase 1 Bluetooth workspace with live `btleplug` discovery, RSSI, device selection, pairing/OS-settings messaging, and connect/disconnect state updates.
-- Connectivity strip for Bluetooth, USB, and Wi-Fi companion routes.
-- Light, touch-friendly Devices and Layouts navigation with teal control surfaces.
-- reWASD-inspired mapping workspace with profile/device toolbar, layer rail, controller preview, mapping editor, link-health inspector, and safe-stop affordance.
+- `crates/openwasd-core`: portable profiles, layers, mappings, device state, transport types, and custom-control report aggregation.
+- `crates/openwasd-app`: Dioxus desktop and Android application shell, with shared Bluetooth service orchestration. The former Makepad UI is retained as an optional legacy binary during migration.
+- Dioxus navigation for Home, Devices, and Layouts, plus keyboard, gamepad, touchpad, and custom control surfaces.
+- Layout creation asks for a name and starts with a `clickme` gamepad button. Custom layouts can add up to six buttons and edit their labels and supported digital actions.
+- Bluetooth discovery, RSSI, device selection, pairing, connection-state updates, and Android HID report commands use the existing `openwasd-bluetooth` service.
+- Profile mapping workspace, virtual device routing, USB companion UI, and full custom-control editor remain in the legacy Makepad implementation and have not yet been ported to Dioxus.
 
 The Bluetooth service uses the [`dinosath/btleplug` fork](https://github.com/dinosath/btleplug/tree/codex/openwasd-bluetooth-features) for BLE central scanning, GATT connections, and the `Central::connected_peripherals()` API on supported platforms, including macOS and Android. Its Android BLE HID-over-GATT support handles mouse and keyboard reports; OpenWASD's Android adapter exposes start/stop, report, and connected-host methods, and the touchpad and click controls send HID reports through that adapter.
 
@@ -30,9 +28,9 @@ recent reports. Open a gamepad, keyboard, touchpad or custom layout on the
 Android device; reports use USB while the session is active, otherwise the
 existing Bluetooth HID route is used.
 
-Installing or launching the Android app with Cargo Makepad can use ADB and may
-require accepting Android's USB debugging prompt. That is a development and
-deployment step; it is not needed for the app's USB accessory connection.
+Installing or launching the Android app can use ADB and may require accepting
+Android's USB debugging prompt. That is a development and deployment step; it
+is not needed for the app's USB accessory connection.
 Open Accessory mode is a device-side USB feature, not generic USB HID. Analog
 control widgets, configurable multi-route profiles, and device-specific
 Bluetooth input inspection remain future work.
@@ -59,37 +57,43 @@ buttons rather than analog sticks or arbitrary widgets. Hardware mappings work
 while the custom layout is in the foreground, and depend on Android delivering
 the button to the app. Volume output needs the updated btleplug HID descriptor;
 hosts that cached the previous descriptor may need the device re-paired.
-The Makepad input changes (local commit `604e36d`) and btleplug descriptor
-change (local commit `f2a2563`) are needed for the tested Android build; they
-must be published to their respective Git branches before the normal Git-based
-dependencies can reproduce that build.
+The custom editor and HID report checks above were performed with the legacy
+Makepad shell. Separately, the Dioxus Android APK has been built and launched
+on an emulator and Retroid Pocket 5. Its btleplug Java classes are packaged;
+both devices start BLE scanning without the previous missing Java-class error.
+The emulator found no peripherals; Retroid scans returned BLE peripherals.
+Android also registered the HID service while opening a custom layout. HID
+report delivery to a host still needs an end-to-end check. The packaging fix
+is in btleplug commit `0c5c38d`, published on the fork branch and pinned by
+`Cargo.lock`.
 
 ## Run
 
-Run the desktop app locally:
+Run the Dioxus desktop app locally (Linux requires the Dioxus desktop WebKitGTK,
+GTK, and DBus development packages):
 
 ```text
 cargo run -p openwasd
 ```
 
-Run on an Android device connected over USB with USB debugging enabled. First
-confirm that ADB lists the device as `device` (accept the authorization prompt
-on the device if needed), then build, install, and launch OpenWASD:
+Run on an Android device connected over USB with USB debugging enabled. Install
+the Dioxus Android requirements (JDK, SDK, NDK, and Android Rust target), then
+confirm ADB lists the device as `device` and serve the app:
 
 ```text
 adb devices
-cargo makepad android run -p openwasd --release
+dx serve --android
 ```
 
 ### Run on an Android emulator (AVD)
 
-Install the Android CLI using the [official installation instructions](https://developer.android.com/tools/agents/android-cli/download), then point it and Cargo Makepad at the same SDK. These commands use the Makepad SDK directory on an Apple Silicon Mac:
+Install the Android CLI using the [official installation instructions](https://developer.android.com/tools/agents/android-cli/download), then point Dioxus and Android tools at the same SDK. Dioxus Android packaging may require SDK packages newer than those included in older local SDK bundles:
 
 ```sh
-export ANDROID_SDK_ROOT="$HOME/.makepad/android_33_macos_aarch64"
+export ANDROID_SDK_ROOT="$HOME/Android/Sdk"
 export PATH="$ANDROID_SDK_ROOT/platform-tools:$ANDROID_SDK_ROOT/emulator:$PATH"
 
-# Install the emulator and an API 33 ARM64 image (API 33 matches Makepad's local SDK).
+# Install an emulator and an Android system image using the Android CLI.
 android --sdk="$ANDROID_SDK_ROOT" sdk install emulator platform-tools system-images/android-33/google_apis/arm64-v8a
 
 # Create and start a medium phone AVD. Skip create if you already have one.
@@ -99,25 +103,16 @@ android --sdk="$ANDROID_SDK_ROOT" emulator start medium_phone
 adb devices -l
 ```
 
-Install Cargo Makepad from the sibling Makepad checkout if the `cargo makepad` command is not available, then build, deploy, and launch OpenWASD on the running AVD:
+Start the app on the running AVD:
 
 ```sh
-cargo install --path ../makepad/tools/cargo_makepad --force
-cargo makepad android --sdk-path="$ANDROID_SDK_ROOT" run -p openwasd --release
+dx serve --android
 ```
 
-To build without launching, replace `run` with `build`; the APK is written under `target/android/makepad-android-apk/openwasd/apk/openwasd.apk`. For an Intel Mac, use the `android_33_macos_x64` SDK directory and an `x86_64` system image, and pass `--abi=x86_64` to Cargo Makepad.
+For a release bundle, use `dx bundle --platform android --release` after the
+required SDK packages are installed and licensed.
 
 AVDs are useful for checking Android startup, layout rendering, rotation, and touch input. Treat Bluetooth HID pairing and report delivery as hardware checks: Android's emulator documentation lists Bluetooth among unsupported virtual hardware, while newer emulator networking docs describe Bluetooth simulation. Verify gamepad reports with a physical Android device and a Bluetooth host before relying on emulator results ([emulator limitations](https://developer.android.com/studio/run/advanced-emulator-usage), [emulator networking](https://developer.android.com/studio/run/emulator-networking)).
-
-`cargo makepad android run` uses ADB to deploy and start the app. To build and
-install separately, then launch the installed APK directly with ADB:
-
-```text
-cargo makepad android build -p openwasd --release
-adb install -r target/android/makepad-android-apk/openwasd/apk/openwasd.apk
-adb shell monkey -p dev.makepad.openwasd 1
-```
 
 Run the shared-engine tests with:
 
@@ -142,13 +137,9 @@ cargo check -p openwasd-bluetooth --tests --target x86_64-pc-windows-gnu
 cargo check -p openwasd-bluetooth --tests --target aarch64-linux-android
 ```
 
-The Android app target is built with Cargo Makepad as shown above. The ignored
-desktop screenshot smoke test also includes the gamepad surface in portrait
-and landscape. Run it in a graphical desktop session with an available GPU:
-
-```text
-cargo test -p openwasd --test screenshot_smoke -- --ignored
-```
+The Android Rust target can be checked with Cargo. The ignored desktop
+screenshot smoke test still targets the former Makepad shell and is not yet
+valid for the default Dioxus UI; its harness needs to be ported before use.
 
 Run the Android-to-Mac BLE HID integration test with a Retroid/Android device
 connected over USB and unlocked, and Bluetooth enabled on the Mac:
@@ -178,28 +169,13 @@ app and Mac host results separately. The test force-stops OpenWASD and restores
 the Android device's original screen rotation when it finishes. Set
 `OPENWASD_ANDROID_ONLY=1` to run just the Android app checks.
 
-Press **F12** in the running app to save the next rendered frame to
-`screenshots/openwasd-<timestamp>.png`. To capture the first rendered frame
-automatically, set `OPENWASD_SCREENSHOT_ON_STARTUP` to the output file path
-before launching the app:
-
-```text
-OPENWASD_SCREENSHOT_ON_STARTUP=/tmp/openwasd.png cargo run -p openwasd
-```
-
-Run the handheld screenshot smoke test (it launches and closes the app for each
-profile and saves verified PNGs in the system temp directory):
-
-```text
-cargo test -p openwasd --test screenshot_smoke -- --ignored --nocapture
-```
-
-The viewport profiles follow published display sizes: [Retroid Pocket 5]
-(1920×1080 landscape and 1080×1920 portrait), [AYN Odin 2 Portal]
-(1920×1080), [Steam Deck OLED] (1280×800), and [ANBERNIC RG556] in landscape
-(1920×1080; its panel is listed as 1080×1920).
-
-For local development, keep the Makepad checkout beside this repository at `../makepad`; Android builds use cargo-makepad from that checkout. OpenWASD resolves btleplug from the Git branch linked above. Only check out `../btleplug` when btleplug source changes are required, and keep any local path override out of committed Cargo files. The app UI stays on the Makepad branch verified for Android rendering. Robius remains a Cargo dependency.
+The Dioxus app builds for Android and has been installed and checked on an
+emulator and Retroid Pocket 5. The old Makepad binary remains available with
+`--features legacy-makepad --bin openwasd-makepad` during migration. OpenWASD
+resolves btleplug from the Git branch linked above; its Android Java sources
+are packaged through Manganis FFI metadata. Check out `../btleplug` only when
+btleplug source changes are required, and keep local path overrides out of
+committed Cargo files. Robius remains a Cargo dependency.
 
 [Retroid Pocket 5]: https://www.goretroid.com/collections/retro-game-system/products/retroid-pocket-5-handheld
 [AYN Odin 2 Portal]: https://www.ayntec.com/

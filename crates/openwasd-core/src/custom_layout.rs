@@ -16,9 +16,25 @@ pub enum ControlAction {
 pub struct CustomControl {
     pub label: String,
     pub action: ControlAction,
+    /// Optional text emitted as keystrokes when this control is pressed.
+    #[serde(default)]
+    pub text_output: Option<String>,
     /// Normalized key name supplied by the platform input adapter.
     #[serde(default)]
     pub hardware_key: Option<String>,
+    /// Whether the button's label is shown on the surface.
+    #[serde(default = "default_true")]
+    pub show_text: bool,
+    /// Whether an action icon is shown on the surface.
+    #[serde(default)]
+    pub show_icon: bool,
+    /// Custom symbol or emoji; `None` uses the action's default icon.
+    #[serde(default)]
+    pub custom_icon: Option<String>,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 /// Tracks sources independently so overlapping mappings don't release one another.

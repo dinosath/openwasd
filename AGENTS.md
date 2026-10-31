@@ -39,6 +39,21 @@ sequence or scope.
   unsupported or unavailable capabilities explicitly rather than pretending
   every platform behaves the same.
 
+## Dioxus UI
+
+- The default `openwasd` application uses Dioxus 0.7 with Rust `rsx!` and CSS.
+  Keep UI behavior in Rust components and styles in `crates/openwasd-app/assets`.
+- Keep one shared page header and express page differences through visibility,
+  text, and state. Reuse shared components for controls and navigation.
+- Use Dioxus signals for UI state. Keep device and transport behavior in its
+  owning Rust crate; the app should orchestrate stable crate APIs.
+- Configure desktop, Android permissions, identifiers, and bundle settings in
+  `crates/openwasd-app/Dioxus.toml`. Validate native build requirements against
+  Dioxus documentation before adding platform-specific integration.
+- The old Makepad application remains available only through the optional
+  `legacy-makepad` feature and `openwasd-makepad` binary while migration work is
+  in progress. Do not extend it unless explicitly asked.
+
 
 ## External dependency development
 
@@ -58,11 +73,9 @@ sequence or scope.
   regenerate `Cargo.lock` before committing OpenWASD changes.
 - Never create or use patch files (`.patch`/`.diff`) or `git apply` to carry
   dependency changes. Do not keep patch-based dependency instructions in docs.
-- For this local development workspace, run Android builds with `cargo-makepad`
-  from the local Makepad checkout (`../makepad/tools/cargo_makepad`). Keep the
-  app UI dependency on its known-compatible Makepad branch until the local
-  Makepad checkout passes the Android rendering check; do not silently swap
-  framework revisions.
+- For the default app, use Dioxus CLI (`dx`) for desktop and Android builds.
+  The legacy Makepad binary, when needed, uses `cargo-makepad` from
+  `../makepad/tools/cargo_makepad`.
 
 ## Working in cycles
 
