@@ -1,0 +1,33 @@
+[application]
+name = "OpenWASD"
+asset_dir = "assets"
+
+[web.app]
+title = "OpenWASD"
+
+[bundle]
+identifier = "dev.makepad.openwasd"
+publisher = "OpenWASD"
+category = "Utility"
+
+[android]
+min_sdk = 28
+target_sdk = 35
+
+[permissions]
+bluetooth = { description = "Find, pair with, and connect Bluetooth input devices." }
+location = { precision = "fine", description = "Find nearby Bluetooth devices on older Android versions." }
+
+[android.permissions]
+"android.permission.BLUETOOTH_SCAN" = { description = "Scan for nearby Bluetooth devices." }
+"android.permission.BLUETOOTH_ADVERTISE" = { description = "Advertise OpenWASD as a Bluetooth HID device." }
+"android.permission.BLUETOOTH" = { description = "Use Bluetooth on Android versions before 12." }
+"android.permission.BLUETOOTH_ADMIN" = { description = "Manage Bluetooth connections on Android versions before 12." }
+"android.permission.INTERNET" = { description = "Use supported local device transports." }
+"android.permission.ACCESS_NETWORK_STATE" = { description = "Check local network availability." }
+
+[android.raw]
+manifest = """
+<uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
+<uses-feature android:name="android.hardware.usb.accessory" android:required="false" />
+"""

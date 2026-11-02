@@ -533,6 +533,27 @@ impl BtleplugAdapter {
         Ok(adapter)
     }
 
+    fn merge_system_paired_devices(&self, devices: &mut Vec<BluetoothDeviceInfo>) {
+        let mut system_devices = system_paired_devices();
+        #[cfg(target_os = "android")]
+        if let Ok(Some(host_name)) = self.hid_connected_host_name() {
+            if let Some(host) = system_devices.iter_mut().find(|device| {
+                device
+                    .name
+                    .as_deref()
+                    .is_some_and(|name| name.eq_ignore_ascii_case(&host_name))
+            }) {
+                debug_log(&format!(
+                    "marking Android HID host {:?} as connected",
+                    host.name
+                ));
+                host.state = ConnectionState::Connected;
+            }
+        }
+        merge_devices(devices, system_devices);
+        sort_devices(devices);
+    }
+
     async fn peripheral(&self, id: &DeviceId) -> Result<Peripheral, BluetoothError> {
         let adapter = self.adapter().await?;
         let peripherals = adapter
@@ -948,7 +969,7 @@ impl BluetoothAdapter for BtleplugAdapter {
                 trusted: false,
             });
         }
-        merge_system_paired_devices(&mut devices);
+        self.merge_system_paired_devices(&mut devices);
         Ok(devices)
     }
 
@@ -1002,7 +1023,13 @@ impl BluetoothAdapter for BtleplugAdapter {
             });
         }
 
-        let system_devices = system_paired_devices();
+        let mut devices = devices;
+        self.merge_system_paired_devices(&mut devices);
+        let system_devices = devices
+            .iter()
+            .filter(|device| device.id.starts_with("system:"))
+            .cloned()
+            .collect::<Vec<_>>();
         let system_connected = system_devices
             .iter()
             .filter(|device| device.state == ConnectionState::Connected)
@@ -1021,10 +1048,6 @@ impl BluetoothAdapter for BtleplugAdapter {
                 device.id, device.name, device.state, device.kind
             ));
         }
-        // Keep paired devices visible in the device list. Their state remains
-        // Paired unless the native API can confirm an active connection.
-        merge_devices(&mut devices, system_devices);
-        sort_devices(&mut devices);
         let connected = devices
             .iter()
             .filter(|device| device.state == ConnectionState::Connected)
@@ -1116,8 +1139,8 @@ fn system_paired_devices() -> Vec<BluetoothDeviceInfo> {
 fn system_paired_devices() -> Vec<BluetoothDeviceInfo> {
     use jni::objects::JObject;
 
-    let result =
-        robius_android_env::with_activity(|env, activity| -> jni::errors::Result<Vec<_>> {
+    let result = robius_android_env::with_activity(
+        |env, activity| -> jni::errors::Result<Vec<_>> {
             let sdk = env
                 .get_static_field("android/os/Build$VERSION", "SDK_INT", "I")?
                 .i()?;
@@ -1198,6 +1221,43 @@ fn system_paired_devices() -> Vec<BluetoothDeviceInfo> {
                     .get_string(&jni::objects::JString::from(address))?
                     .to_string_lossy()
                     .into_owned();
+                let address_arg = env.new_string(&address)?;
+                let class_loader = env
+                    .call_method(
+                        &activity,
+                        "getClassLoader",
+                        "()Ljava/lang/ClassLoader;",
+                        &[],
+                    )?
+                    .l()?;
+                let class_name = env
+                    .new_string("com.nonpolynomial.btleplug.android.impl.BluetoothProfileQuery")?;
+                let query_class = env
+                    .call_method(
+                        &class_loader,
+                        "loadClass",
+                        "(Ljava/lang/String;)Ljava/lang/Class;",
+                        &[(&class_name).into()],
+                    )?
+                    .l()?;
+                let query_class = jni::objects::JClass::from(query_class);
+                let mut connected = false;
+                for profile in [1_i32, 2_i32] {
+                    connected = env
+                        .call_static_method(
+                            &query_class,
+                            "isDeviceConnected",
+                            "(Landroid/content/Context;Ljava/lang/String;I)Z",
+                            &[(&activity).into(), (&address_arg).into(), profile.into()],
+                        )?
+                        .z()?;
+                    if connected {
+                        debug_log(&format!(
+                            "Android Bluetooth device name={name:?} is connected on profile {profile}"
+                        ));
+                        break;
+                    }
+                }
                 debug_log(&format!(
                     "Android bonded Bluetooth device name={name:?} address={address}"
                 ));
@@ -1206,7 +1266,11 @@ fn system_paired_devices() -> Vec<BluetoothDeviceInfo> {
                     kind: classify_name(name.as_deref()),
                     name,
                     transport: Transport::Bluetooth,
-                    state: ConnectionState::Paired,
+                    state: if connected {
+                        ConnectionState::Connected
+                    } else {
+                        ConnectionState::Paired
+                    },
                     rssi_dbm: None,
                     battery_percent: None,
                     services: Vec::new(),
@@ -1214,7 +1278,8 @@ fn system_paired_devices() -> Vec<BluetoothDeviceInfo> {
                 });
             }
             Ok(devices)
-        });
+        },
+    );
 
     match result {
         Ok(Ok(devices)) => devices,
@@ -1238,12 +1303,6 @@ fn system_paired_devices() -> Vec<BluetoothDeviceInfo> {
 ))]
 fn system_paired_devices() -> Vec<BluetoothDeviceInfo> {
     Vec::new()
-}
-
-#[cfg(feature = "btleplug")]
-fn merge_system_paired_devices(devices: &mut Vec<BluetoothDeviceInfo>) {
-    merge_devices(devices, system_paired_devices());
-    sort_devices(devices);
 }
 
 #[cfg(feature = "btleplug")]
