@@ -41,10 +41,13 @@ sequence or scope.
 
 ## Dioxus UI
 
+- Use `$dioxus-best-practices` when building, reviewing, or refactoring the Dioxus app UI.
 - The default `openwasd` application uses Dioxus 0.7 with Rust `rsx!` and CSS.
   Keep UI behavior in Rust components and styles in `crates/openwasd-app/assets`.
 - Keep one shared page header and express page differences through visibility,
   text, and state. Reuse shared components for controls and navigation.
+- Reuse shared top-bar and layout-view components across pages and screens; do not
+  duplicate their RSX or styling to create screen-specific copies.
 - Use Dioxus signals for UI state. Keep device and transport behavior in its
   owning Rust crate; the app should orchestrate stable crate APIs.
 - Configure desktop, Android permissions, identifiers, and bundle settings in

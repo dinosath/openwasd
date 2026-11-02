@@ -23,6 +23,14 @@ the custom layout opened, Android registered the HID service, and btleplug
 returned BLE peripherals during scanning. HID report delivery to a host still
 needs a separate end-to-end check.
 
+The Dioxus custom layout editor now opens a dedicated button mapping page with
+Keyboard, Function, Text, Hardware, and Settings tabs. It also stores hidden
+layout-level hardware mappings and routes captured key/gamepad-button events
+through the active layout. Capture uses WebView keyboard events and the browser
+Gamepad API; physical RP5 control delivery still needs validation with actual
+hardware because Android-injected key events did not reach the WebView listener
+in the available device check.
+
 ## 1. Executive summary
 
 reWASD is primarily a Windows remapping and output-routing workspace. Its
@@ -253,7 +261,9 @@ The Layouts page also exposes a Custom controls entry on every platform; it
 opens custom-layout creation regardless of the currently active input backend.
 The top-bar plus opens a dedicated New layout page; the page returns to Layouts
 from its back arrow or Cancel action. Creation asks only for a name, then saves
-a custom layout with one default button named `clickme`. On a custom layout
+a custom layout with one default button named `clickme`. There is no
+application-imposed limit on the number of saved custom layouts; available
+device storage is the practical limit. On a custom layout
 surface, Edit and Settings remain available together; Edit exposes the Add
 button menu.
 The local Makepad and btleplug commits documented in the README must be

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Dioxus Best Practices"
+  short_description: "Build reusable Dioxus UI in OpenWASD"
+  default_prompt: "Use $dioxus-best-practices to update this Dioxus UI."

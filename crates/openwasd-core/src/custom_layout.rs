@@ -33,6 +33,15 @@ pub struct CustomControl {
     pub custom_icon: Option<String>,
 }
 
+/// A hardware input mapping that is active with a custom layout but is not
+/// represented by a visible surface control.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct HardwareMapping {
+    /// Normalized input name supplied by the platform input adapter.
+    pub hardware_key: String,
+    pub action: ControlAction,
+}
+
 fn default_true() -> bool {
     true
 }

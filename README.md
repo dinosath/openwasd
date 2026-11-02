@@ -7,7 +7,7 @@ OpenWASD is a cross-platform input control workspace built around a shared Rust 
 - `crates/openwasd-core`: portable profiles, layers, mappings, device state, transport types, and custom-control report aggregation.
 - `crates/openwasd-app`: Dioxus desktop and Android application shell, with shared Bluetooth service orchestration. The former Makepad UI is retained as an optional legacy binary during migration.
 - Dioxus navigation for Home, Devices, and Layouts, plus keyboard, gamepad, touchpad, and custom control surfaces.
-- Layout creation asks for a name and starts with a `clickme` gamepad button. Custom layouts can add up to six buttons and edit their labels and supported digital actions.
+- Layout creation asks for a name and starts with a `clickme` gamepad button. Users can create as many custom layouts as device storage allows; each custom layout can add up to six buttons and edit their labels and supported digital actions.
 - Bluetooth discovery, RSSI, device selection, pairing, connection-state updates, and Android HID report commands use the existing `openwasd-bluetooth` service.
 - Profile mapping workspace, virtual device routing, USB companion UI, and full custom-control editor remain in the legacy Makepad implementation and have not yet been ported to Dioxus.
 
