@@ -23,6 +23,25 @@ the custom layout opened, Android registered the HID service, and btleplug
 returned BLE peripherals during scanning. HID report delivery to a host still
 needs a separate end-to-end check.
 
+The built-in touchpad now turns pointer drags into relative mouse reports and
+tap gestures into left clicks. The built-in keyboard offers separate 60%, 80%
+tenkeyless, and 100% layouts on the Layouts page. Each fills the available
+surface with its matching key groups; 100% includes a numpad, while the smaller
+layouts do not. It keeps simultaneous key presses in a six-key-rollover report
+so modifier combinations work. The updated Android bundle was installed on the
+RP5 and the keyboard fit the available screen. After the other HID
+app was closed, the RP5 reported the Android registration callback as
+successful despite an immediate false return, then connected to Bazzite with
+mouse and keyboard reports ready. Actual host-side key and mouse event reception
+still needs an end-to-end check.
+
+The Layouts page includes a Gamepad surface with Xbox 360 button mapping. It
+places shoulder controls at the top, D-pad and ABXY controls at the sides, and
+Back/Start buttons with movable thumbsticks in the center. Thumbsticks update
+HID axes while dragged and retain L3/R3 click input. The Xbox Guide button is
+omitted. Buttons and triggers are digital; analog trigger pressure is not yet
+implemented.
+
 The Dioxus custom layout editor now opens a dedicated button mapping page with
 Keyboard, Function, Text, Hardware, and Settings tabs. It also stores hidden
 layout-level hardware mappings and routes captured key/gamepad-button events
@@ -235,9 +254,12 @@ buttons. In Edit mode, a compact notice explains that tapping a button opens
 its editor and long-press dragging moves it; returning from the detail view
 preserves Edit mode. The edit header shows the layout name, then switches to the
 selected button name in its detail view. The detail editor provides Keyboard
-shortcut, Function, Text, Hardware buttons, and Settings tabs. Keyboard shortcuts currently select
-one HID key at a time; Function lists supported OpenWASD actions, and Text sends
-ASCII using the US keyboard layout. Hardware button assignment has its own tab.
+shortcut, Function, Text, Hardware buttons, and Settings tabs. Keyboard shortcuts select
+one HID key at a time from the full USB HID Keyboard/Keypad usage set, including
+modifiers, keypad, function, and language keys. Modifier usages are sent through
+the keyboard report's modifier bits. Function lists supported OpenWASD actions,
+and Text sends ASCII using the US keyboard layout. Hidden layout mappings can
+target all 16 gamepad buttons. Hardware button assignment has its own tab.
 The Settings tab edits the button name and controls label/icon visibility, with
 action-based default icons or a custom emoji/symbol. Edit controls are compact and draggable;
 page titles, subtitles, icon buttons, and layout controls now share reusable

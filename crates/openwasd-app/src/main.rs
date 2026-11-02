@@ -13,20 +13,41 @@ const CUSTOM_LIMIT: usize = 6;
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 enum LayoutKind {
-    Keyboard,
+    Keyboard60,
+    Keyboard80,
+    Keyboard100,
     Gamepad,
     Custom,
     #[default]
     Touchpad,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+enum KeyboardFormFactor {
+    Compact60,
+    #[default]
+    Tenkeyless80,
+    Full100,
+}
+
 impl LayoutKind {
     fn title(self) -> &'static str {
         match self {
-            Self::Keyboard => "Keyboard",
+            Self::Keyboard60 => "Keyboard 60%",
+            Self::Keyboard80 => "Keyboard 80%",
+            Self::Keyboard100 => "Keyboard 100%",
             Self::Gamepad => "Gamepad",
             Self::Custom => "Custom layout",
             Self::Touchpad => "Mouse / keyboard",
+        }
+    }
+
+    fn keyboard_form_factor(self) -> Option<KeyboardFormFactor> {
+        match self {
+            Self::Keyboard60 => Some(KeyboardFormFactor::Compact60),
+            Self::Keyboard80 => Some(KeyboardFormFactor::Tenkeyless80),
+            Self::Keyboard100 => Some(KeyboardFormFactor::Full100),
+            _ => None,
         }
     }
 }
@@ -35,6 +56,8 @@ impl LayoutKind {
 struct SavedLayout {
     name: String,
     kind: LayoutKind,
+    #[serde(default)]
+    is_default: bool,
     #[serde(default)]
     controls: Vec<CustomControl>,
     #[serde(default)]
@@ -86,6 +109,46 @@ struct PointerGesture {
     surface_width: f64,
     surface_height: f64,
     original: ControlGeometry,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct TouchpadGesture {
+    pointer_id: i32,
+    start_x: f64,
+    start_y: f64,
+    last_x: f64,
+    last_y: f64,
+    moved: bool,
+}
+
+#[derive(Clone, Copy)]
+enum GamepadControl {
+    Button(u8),
+    Dpad(u8),
+}
+
+#[derive(Clone, Copy)]
+struct StickGesture {
+    axis_x: usize,
+    axis_y: usize,
+    center_x: f64,
+    center_y: f64,
+    radius: f64,
+}
+
+#[derive(Default)]
+struct GamepadInputState {
+    controls: HashMap<i32, GamepadControl>,
+    sticks: HashMap<i32, StickGesture>,
+    axes: [i8; 4],
+}
+
+#[derive(Clone, Copy)]
+struct KeyboardKey {
+    label: &'static str,
+    usage: u8,
+    flex: u8,
+    class_name: &'static str,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -153,7 +216,27 @@ fn load_layouts() -> Vec<SavedLayout> {
         }
         layout.geometry.truncate(layout.controls.len());
     }
+    for kind in [
+        LayoutKind::Keyboard60,
+        LayoutKind::Keyboard80,
+        LayoutKind::Keyboard100,
+        LayoutKind::Touchpad,
+        LayoutKind::Gamepad,
+    ] {
+        if !layouts
+            .iter()
+            .any(|layout| layout.is_default && layout.kind == kind)
+        {
+            layouts.push(default_layout(kind));
+        }
+    }
     layouts
+}
+
+fn default_layout_index(layouts: &[SavedLayout], kind: LayoutKind) -> Option<usize> {
+    layouts
+        .iter()
+        .position(|layout| layout.is_default && layout.kind == kind)
 }
 
 fn save_layouts(layouts: &[SavedLayout]) -> Result<(), String> {
@@ -168,6 +251,7 @@ fn save_layouts(layouts: &[SavedLayout]) -> Result<(), String> {
 
 fn default_control() -> CustomControl {
     CustomControl {
+        builtin_id: None,
         label: "clickme".into(),
         action: ControlAction::GamepadButton(0),
         text_output: None,
@@ -178,7 +262,92 @@ fn default_control() -> CustomControl {
     }
 }
 
+fn default_layout(kind: LayoutKind) -> SavedLayout {
+    let controls = match kind {
+        LayoutKind::Keyboard60 | LayoutKind::Keyboard80 | LayoutKind::Keyboard100 => {
+            let form_factor = kind.keyboard_form_factor().unwrap_or_default();
+            full_keyboard_main_rows(form_factor)
+                .into_iter()
+                .chain(full_keyboard_aux_rows(form_factor))
+                .chain(if form_factor == KeyboardFormFactor::Full100 {
+                    keyboard_numpad_rows()
+                } else {
+                    Vec::new()
+                })
+                .flatten()
+                .filter(|key| key.usage != 0)
+                .map(|key| CustomControl {
+                    builtin_id: Some(format!("key:{}", key.usage)),
+                    label: key.label.to_string(),
+                    action: ControlAction::Keyboard(key.usage),
+                    ..default_control()
+                })
+                .collect()
+        }
+        LayoutKind::Touchpad => [
+            ("mouse-left", "Left click", ControlAction::MouseButton(1)),
+            (
+                "mouse-middle",
+                "Middle click",
+                ControlAction::MouseButton(4),
+            ),
+            ("mouse-right", "Right click", ControlAction::MouseButton(2)),
+        ]
+        .into_iter()
+        .map(|(id, label, action)| CustomControl {
+            builtin_id: Some(id.into()),
+            label: label.into(),
+            action,
+            ..default_control()
+        })
+        .collect(),
+        LayoutKind::Gamepad => [
+            ("button:0", "A", ControlAction::GamepadButton(0)),
+            ("button:1", "B", ControlAction::GamepadButton(1)),
+            ("button:2", "X", ControlAction::GamepadButton(2)),
+            ("button:3", "Y", ControlAction::GamepadButton(3)),
+            ("button:4", "LB", ControlAction::GamepadButton(4)),
+            ("button:5", "RB", ControlAction::GamepadButton(5)),
+            ("button:6", "LT", ControlAction::GamepadButton(6)),
+            ("button:7", "RT", ControlAction::GamepadButton(7)),
+            ("button:8", "Back", ControlAction::GamepadButton(8)),
+            ("button:9", "Start", ControlAction::GamepadButton(9)),
+            ("button:11", "L3", ControlAction::GamepadButton(11)),
+            ("button:12", "R3", ControlAction::GamepadButton(12)),
+            ("hat:0", "D-pad up", ControlAction::GamepadHat(0)),
+            ("hat:1", "D-pad right", ControlAction::GamepadHat(1)),
+            ("hat:2", "D-pad down", ControlAction::GamepadHat(2)),
+            ("hat:3", "D-pad left", ControlAction::GamepadHat(3)),
+        ]
+        .into_iter()
+        .map(|(id, label, action)| CustomControl {
+            builtin_id: Some(id.into()),
+            label: label.into(),
+            action,
+            ..default_control()
+        })
+        .collect(),
+        LayoutKind::Custom => Vec::new(),
+    };
+    SavedLayout {
+        name: kind.title().into(),
+        kind,
+        is_default: true,
+        geometry: (0..controls.len()).map(default_geometry).collect(),
+        controls,
+        hardware_mappings: Vec::new(),
+    }
+}
+
 fn action_from_id(id: &str) -> ControlAction {
+    if let Some(button) = id
+        .strip_prefix("gamepad-")
+        .and_then(|value| value.parse::<u8>().ok())
+        .filter(|button| *button < 16)
+    {
+        return ControlAction::GamepadButton(button);
+    }
+
     match id {
         "key-space" => ControlAction::Keyboard(44),
         "key-enter" => ControlAction::Keyboard(40),
@@ -192,19 +361,568 @@ fn action_from_id(id: &str) -> ControlAction {
     }
 }
 
-fn action_label(action: ControlAction) -> &'static str {
-    match action {
-        ControlAction::Keyboard(44) => "Space",
-        ControlAction::Keyboard(40) => "Enter",
-        ControlAction::Keyboard(_) => "Keyboard key",
-        ControlAction::GamepadButton(0) => "Gamepad A",
-        ControlAction::GamepadButton(1) => "Gamepad B",
-        ControlAction::GamepadButton(2) => "Gamepad X",
-        ControlAction::GamepadButton(3) => "Gamepad Y",
-        ControlAction::GamepadButton(_) => "Gamepad button",
-        ControlAction::MouseButton(_) => "Mouse button",
-        ControlAction::BluetoothSettings => "Bluetooth settings",
+fn gamepad_button_name(button: u8) -> String {
+    match button {
+        0 => "A".into(),
+        1 => "B".into(),
+        2 => "X".into(),
+        3 => "Y".into(),
+        4 => "L1".into(),
+        5 => "R1".into(),
+        6 => "L2".into(),
+        7 => "R2".into(),
+        8 => "Select".into(),
+        9 => "Start".into(),
+        10 => "Home".into(),
+        11 => "L3".into(),
+        12 => "R3".into(),
+        _ => format!("Button {}", button + 1),
     }
+}
+
+fn action_label(action: ControlAction) -> String {
+    match action {
+        ControlAction::Keyboard(44) => "Space".into(),
+        ControlAction::Keyboard(40) => "Enter".into(),
+        ControlAction::Keyboard(_) => "Keyboard key".into(),
+        ControlAction::GamepadButton(button) => format!("Gamepad {}", gamepad_button_name(button)),
+        ControlAction::GamepadHat(direction) => format!(
+            "Gamepad D-pad {}",
+            ["up", "right", "down", "left"]
+                .get(direction as usize)
+                .copied()
+                .unwrap_or("direction")
+        ),
+        ControlAction::MouseButton(_) => "Mouse button".into(),
+        ControlAction::BluetoothSettings => "Bluetooth settings".into(),
+    }
+}
+
+fn action_value(action: ControlAction) -> String {
+    match action {
+        ControlAction::Keyboard(value) => format!("key:{value}"),
+        ControlAction::GamepadButton(value) => format!("button:{value}"),
+        ControlAction::GamepadHat(value) => format!("hat:{value}"),
+        ControlAction::MouseButton(value) => format!("mouse:{value}"),
+        ControlAction::BluetoothSettings => "bluetooth".into(),
+    }
+}
+
+fn parse_action_value(value: &str) -> Option<ControlAction> {
+    let (kind, value) = value.split_once(':').unwrap_or((value, ""));
+    match kind {
+        "key" => value.parse().ok().map(ControlAction::Keyboard),
+        "button" => value.parse().ok().map(ControlAction::GamepadButton),
+        "hat" => value.parse().ok().map(ControlAction::GamepadHat),
+        "mouse" => value.parse().ok().map(ControlAction::MouseButton),
+        _ => None,
+    }
+}
+
+fn layout_action_choices(kind: LayoutKind) -> Vec<(String, String)> {
+    match kind {
+        LayoutKind::Keyboard60 | LayoutKind::Keyboard80 | LayoutKind::Keyboard100 => {
+            keyboard_mapping_choices()
+                .into_iter()
+                .map(|(label, usage)| (format!("key:{usage}"), label))
+                .collect()
+        }
+        LayoutKind::Touchpad => [
+            ("mouse:1", "Left mouse button"),
+            ("mouse:4", "Middle mouse button"),
+            ("mouse:2", "Right mouse button"),
+        ]
+        .into_iter()
+        .map(|(v, l)| (v.into(), l.into()))
+        .collect(),
+        LayoutKind::Gamepad => (0..16)
+            .filter(|button| *button != 10)
+            .map(|button| {
+                (
+                    format!("button:{button}"),
+                    format!("Gamepad {}", gamepad_button_name(button)),
+                )
+            })
+            .chain((0..4).map(|direction| {
+                (
+                    format!("hat:{direction}"),
+                    format!(
+                        "D-pad {}",
+                        ["up", "right", "down", "left"][direction as usize]
+                    ),
+                )
+            }))
+            .collect(),
+        LayoutKind::Custom => Vec::new(),
+    }
+}
+
+fn keyboard_mapping_choices() -> Vec<(String, u8)> {
+    fn add(choices: &mut Vec<(String, u8)>, label: impl Into<String>, usage: u8) {
+        choices.push((label.into(), usage));
+    }
+
+    let mut choices = Vec::new();
+    for (index, letter) in ('A'..='Z').enumerate() {
+        add(&mut choices, letter.to_string(), 4 + index as u8);
+    }
+    for (index, digit) in ('1'..='9').enumerate() {
+        add(&mut choices, digit.to_string(), 30 + index as u8);
+    }
+    add(&mut choices, "0", 39);
+
+    for (label, usage) in [
+        ("Enter", 40),
+        ("Escape", 41),
+        ("Backspace", 42),
+        ("Tab", 43),
+        ("Space", 44),
+        ("Minus (-)", 45),
+        ("Equal (=)", 46),
+        ("Left bracket ([)", 47),
+        ("Right bracket (])", 48),
+        ("Backslash (\\)", 49),
+        ("Non-US # / ~", 50),
+        ("Semicolon (;)", 51),
+        ("Apostrophe (')", 52),
+        ("Grave accent (`)", 53),
+        ("Comma (,)", 54),
+        ("Period (.)", 55),
+        ("Slash (/)", 56),
+        ("Caps Lock", 57),
+    ] {
+        add(&mut choices, label, usage);
+    }
+
+    for function_key in 1..=12 {
+        add(
+            &mut choices,
+            format!("F{function_key}"),
+            57 + function_key as u8,
+        );
+    }
+
+    for (label, usage) in [
+        ("Print Screen", 70),
+        ("Scroll Lock", 71),
+        ("Pause", 72),
+        ("Insert", 73),
+        ("Home", 74),
+        ("Page Up", 75),
+        ("Delete", 76),
+        ("End", 77),
+        ("Page Down", 78),
+        ("Right Arrow", 79),
+        ("Left Arrow", 80),
+        ("Down Arrow", 81),
+        ("Up Arrow", 82),
+        ("Num Lock", 83),
+        ("Keypad /", 84),
+        ("Keypad *", 85),
+        ("Keypad -", 86),
+        ("Keypad +", 87),
+        ("Keypad Enter", 88),
+    ] {
+        add(&mut choices, label, usage);
+    }
+
+    for digit in 1..=9 {
+        add(&mut choices, format!("Keypad {digit}"), 88 + digit);
+    }
+    for (label, usage) in [
+        ("Keypad 0", 98),
+        ("Keypad .", 99),
+        ("Non-US \\", 100),
+        ("Application", 101),
+        ("Power", 102),
+        ("Keypad =", 103),
+    ] {
+        add(&mut choices, label, usage);
+    }
+
+    for function_key in 13..=24 {
+        add(
+            &mut choices,
+            format!("F{function_key}"),
+            91 + function_key as u8,
+        );
+    }
+
+    for (label, usage) in [
+        ("Execute", 116),
+        ("Help", 117),
+        ("Menu", 118),
+        ("Select", 119),
+        ("Stop", 120),
+        ("Again", 121),
+        ("Undo", 122),
+        ("Cut", 123),
+        ("Copy", 124),
+        ("Paste", 125),
+        ("Find", 126),
+        ("Mute", 127),
+        ("Volume Up", 128),
+        ("Volume Down", 129),
+        ("Locking Caps Lock", 130),
+        ("Locking Num Lock", 131),
+        ("Locking Scroll Lock", 132),
+        ("Keypad Comma", 133),
+        ("Keypad Equal (AS/400)", 134),
+    ] {
+        add(&mut choices, label, usage);
+    }
+
+    for language_key in 1..=9 {
+        add(
+            &mut choices,
+            format!("International {language_key}"),
+            134 + language_key as u8,
+        );
+    }
+    for language_key in 1..=9 {
+        add(
+            &mut choices,
+            format!("Language {language_key}"),
+            143 + language_key as u8,
+        );
+    }
+
+    for (label, usage) in [
+        ("Alternate Erase", 153),
+        ("SysReq / Attention", 154),
+        ("Cancel", 155),
+        ("Clear", 156),
+        ("Prior", 157),
+        ("Return", 158),
+        ("Separator", 159),
+        ("Out", 160),
+        ("Oper", 161),
+        ("Clear / Again", 162),
+        ("CrSel / Props", 163),
+        ("ExSel", 164),
+        ("Keypad 00", 176),
+        ("Keypad 000", 177),
+        ("Thousands Separator", 178),
+        ("Decimal Separator", 179),
+        ("Currency Unit", 180),
+        ("Currency Sub-unit", 181),
+        ("Keypad (", 182),
+        ("Keypad )", 183),
+        ("Keypad {", 184),
+        ("Keypad }", 185),
+        ("Keypad Tab", 186),
+        ("Keypad Backspace", 187),
+        ("Keypad A", 188),
+        ("Keypad B", 189),
+        ("Keypad C", 190),
+        ("Keypad D", 191),
+        ("Keypad E", 192),
+        ("Keypad F", 193),
+        ("Keypad XOR", 194),
+        ("Keypad ^", 195),
+        ("Keypad %", 196),
+        ("Keypad <", 197),
+        ("Keypad >", 198),
+        ("Keypad &", 199),
+        ("Keypad &&", 200),
+        ("Keypad |", 201),
+        ("Keypad ||", 202),
+        ("Keypad :", 203),
+        ("Keypad #", 204),
+        ("Keypad Space", 205),
+        ("Keypad @", 206),
+        ("Keypad !", 207),
+        ("Keypad Memory Store", 208),
+        ("Keypad Memory Recall", 209),
+        ("Keypad Memory Clear", 210),
+        ("Keypad Memory Add", 211),
+        ("Keypad Memory Subtract", 212),
+        ("Keypad Memory Multiply", 213),
+        ("Keypad Memory Divide", 214),
+        ("Keypad +/-", 215),
+        ("Keypad Clear", 216),
+        ("Keypad Clear Entry", 217),
+        ("Keypad Binary", 218),
+        ("Keypad Octal", 219),
+        ("Keypad Decimal", 220),
+        ("Keypad Hexadecimal", 221),
+        ("Left Control", 224),
+        ("Left Shift", 225),
+        ("Left Alt", 226),
+        ("Left GUI / Meta", 227),
+        ("Right Control", 228),
+        ("Right Shift", 229),
+        ("Right Alt", 230),
+        ("Right GUI / Meta", 231),
+    ] {
+        add(&mut choices, label, usage);
+    }
+
+    choices
+}
+
+fn keyboard_key(label: &'static str, usage: u8) -> KeyboardKey {
+    KeyboardKey {
+        label,
+        usage,
+        flex: 1,
+        class_name: "",
+    }
+}
+
+fn wide_keyboard_key(label: &'static str, usage: u8, flex: u8) -> KeyboardKey {
+    KeyboardKey {
+        label,
+        usage,
+        flex,
+        class_name: "key-button-wide",
+    }
+}
+
+fn keyboard_spacer(flex: u8) -> KeyboardKey {
+    KeyboardKey {
+        label: "",
+        usage: 0,
+        flex,
+        class_name: "",
+    }
+}
+
+fn full_keyboard_main_rows(form_factor: KeyboardFormFactor) -> Vec<Vec<KeyboardKey>> {
+    let function_row = if form_factor == KeyboardFormFactor::Compact60 {
+        vec![keyboard_key("Esc", 41), keyboard_spacer(12)]
+    } else {
+        let mut row = vec![keyboard_key("Esc", 41)];
+        row.extend([
+            keyboard_key("F1", 58),
+            keyboard_key("F2", 59),
+            keyboard_key("F3", 60),
+            keyboard_key("F4", 61),
+        ]);
+        row.push(keyboard_spacer(1));
+        row.extend([
+            keyboard_key("F5", 62),
+            keyboard_key("F6", 63),
+            keyboard_key("F7", 64),
+            keyboard_key("F8", 65),
+        ]);
+        row.push(keyboard_spacer(1));
+        row.extend([
+            keyboard_key("F9", 66),
+            keyboard_key("F10", 67),
+            keyboard_key("F11", 68),
+            keyboard_key("F12", 69),
+        ]);
+        row
+    };
+
+    let mut rows = vec![
+        function_row,
+        vec![
+            keyboard_key("` ~", 53),
+            keyboard_key("1 !", 30),
+            keyboard_key("2 @", 31),
+            keyboard_key("3 #", 32),
+            keyboard_key("4 $", 33),
+            keyboard_key("5 %", 34),
+            keyboard_key("6 ^", 35),
+            keyboard_key("7 &", 36),
+            keyboard_key("8 *", 37),
+            keyboard_key("9 (", 38),
+            keyboard_key("0 )", 39),
+            keyboard_key("- _", 45),
+            keyboard_key("= +", 46),
+            wide_keyboard_key("Backspace", 42, 2),
+        ],
+        vec![
+            wide_keyboard_key("Tab", 43, 3),
+            keyboard_key("Q", 20),
+            keyboard_key("W", 26),
+            keyboard_key("E", 8),
+            keyboard_key("R", 21),
+            keyboard_key("T", 23),
+            keyboard_key("Y", 28),
+            keyboard_key("U", 24),
+            keyboard_key("I", 12),
+            keyboard_key("O", 18),
+            keyboard_key("P", 19),
+            keyboard_key("[ {", 47),
+            keyboard_key("] }", 48),
+            keyboard_key("\\ |", 49),
+        ],
+        vec![
+            wide_keyboard_key("Caps", 57, 3),
+            keyboard_key("A", 4),
+            keyboard_key("S", 22),
+            keyboard_key("D", 7),
+            keyboard_key("F", 9),
+            keyboard_key("G", 10),
+            keyboard_key("H", 11),
+            keyboard_key("J", 13),
+            keyboard_key("K", 14),
+            keyboard_key("L", 15),
+            keyboard_key("; :", 51),
+            keyboard_key("' \"", 52),
+            wide_keyboard_key("Enter", 40, 3),
+        ],
+        vec![
+            wide_keyboard_key("Shift", 225, 4),
+            keyboard_key("Z", 29),
+            keyboard_key("X", 27),
+            keyboard_key("C", 6),
+            keyboard_key("V", 25),
+            keyboard_key("B", 5),
+            keyboard_key("N", 17),
+            keyboard_key("M", 16),
+            keyboard_key(", <", 54),
+            keyboard_key(". >", 55),
+            keyboard_key("/ ?", 56),
+            wide_keyboard_key("Shift", 229, 4),
+        ],
+        vec![
+            wide_keyboard_key("Ctrl", 224, 2),
+            wide_keyboard_key("Win", 227, 2),
+            wide_keyboard_key("Alt", 226, 2),
+            wide_keyboard_key("Space", 44, 7),
+            wide_keyboard_key("Alt", 230, 2),
+            wide_keyboard_key("Win", 231, 2),
+            wide_keyboard_key("Menu", 101, 2),
+            wide_keyboard_key("Ctrl", 228, 2),
+        ],
+    ];
+    if form_factor == KeyboardFormFactor::Compact60 {
+        rows[5].retain(|key| key.usage != 101);
+    }
+    rows
+}
+
+fn full_keyboard_aux_rows(form_factor: KeyboardFormFactor) -> Vec<Vec<KeyboardKey>> {
+    if form_factor == KeyboardFormFactor::Compact60 {
+        return Vec::new();
+    }
+    vec![
+        vec![
+            keyboard_key("PrtSc", 70),
+            keyboard_key("ScrLk", 71),
+            keyboard_key("Pause", 72),
+        ],
+        vec![
+            keyboard_key("Ins", 73),
+            keyboard_key("Home", 74),
+            keyboard_key("PgUp", 75),
+        ],
+        vec![
+            keyboard_key("Del", 76),
+            keyboard_key("End", 77),
+            keyboard_key("PgDn", 78),
+        ],
+        vec![
+            keyboard_spacer(1),
+            keyboard_key("↑", 82),
+            keyboard_spacer(1),
+        ],
+        vec![
+            keyboard_key("←", 80),
+            keyboard_key("↓", 81),
+            keyboard_key("→", 79),
+        ],
+        vec![keyboard_spacer(1), keyboard_spacer(1), keyboard_spacer(1)],
+    ]
+}
+
+fn keyboard_numpad_rows() -> Vec<Vec<KeyboardKey>> {
+    vec![
+        vec![
+            keyboard_key("Num", 83),
+            keyboard_key("/", 84),
+            keyboard_key("*", 85),
+            keyboard_key("-", 86),
+        ],
+        vec![
+            keyboard_key("7", 95),
+            keyboard_key("8", 96),
+            keyboard_key("9", 97),
+            keyboard_spacer(1),
+        ],
+        vec![
+            keyboard_key("4", 92),
+            keyboard_key("5", 93),
+            keyboard_key("6", 94),
+            keyboard_key("+", 87),
+        ],
+        vec![
+            keyboard_key("1", 89),
+            keyboard_key("2", 90),
+            keyboard_key("3", 91),
+            keyboard_key("Enter", 88),
+        ],
+        vec![
+            wide_keyboard_key("0", 98, 2),
+            keyboard_key(".", 99),
+            keyboard_spacer(1),
+        ],
+    ]
+}
+
+fn configured_keyboard_key(key: KeyboardKey, controls: &[CustomControl]) -> (String, u8) {
+    let id = format!("key:{}", key.usage);
+    let Some(control) = controls
+        .iter()
+        .find(|control| control.builtin_id.as_deref() == Some(id.as_str()))
+    else {
+        return (key.label.to_string(), key.usage);
+    };
+    let output = match control.action {
+        ControlAction::Keyboard(usage) => usage,
+        _ => key.usage,
+    };
+    (control.label.clone(), output)
+}
+
+fn configured_control(
+    controls: &[CustomControl],
+    id: &str,
+    default_label: &str,
+    default_action: ControlAction,
+) -> (String, ControlAction) {
+    controls
+        .iter()
+        .find(|control| control.builtin_id.as_deref() == Some(id))
+        .map(|control| (control.label.clone(), control.action))
+        .unwrap_or_else(|| (default_label.to_string(), default_action))
+}
+
+fn keyboard_report(usages: impl IntoIterator<Item = u8>) -> [u8; 8] {
+    let mut report = [0; 8];
+    for usage in usages {
+        if (224..=231).contains(&usage) {
+            report[0] |= 1 << (usage - 224);
+        } else if usage != 0 && !report[2..].contains(&usage) {
+            if let Some(slot) = report[2..].iter_mut().find(|slot| **slot == 0) {
+                *slot = usage;
+            }
+        }
+    }
+    report
+}
+
+fn update_keyboard_pointer(
+    backend: &Backend,
+    mut pressed: Signal<HashMap<i32, u8>>,
+    pointer_id: i32,
+    usage: u8,
+    down: bool,
+) {
+    pressed.with_mut(|keys| {
+        if down {
+            keys.insert(pointer_id, usage);
+        } else {
+            keys.remove(&pointer_id);
+        }
+    });
+    backend.send(BluetoothCommand::HidKeyboard(keyboard_report(
+        pressed.read().values().copied(),
+    )));
 }
 
 fn send_text_output(backend: &Backend, text: &str) {
@@ -436,6 +1154,105 @@ fn send_reports(backend: &Backend, controls: &Signal<ActiveControls>) {
     });
 }
 
+fn send_gamepad_report(backend: &Backend, state: &Signal<GamepadInputState>) {
+    let state = state.read();
+    let mut report = [
+        0_u8,
+        0,
+        0x0f,
+        state.axes[0] as u8,
+        state.axes[1] as u8,
+        state.axes[2] as u8,
+        state.axes[3] as u8,
+    ];
+    let mut directions = 0_u8;
+    for control in state.controls.values() {
+        match control {
+            GamepadControl::Button(button) if *button < 16 => {
+                report[(*button / 8) as usize] |= 1 << (*button % 8);
+            }
+            GamepadControl::Dpad(direction) => directions |= 1 << direction,
+            _ => {}
+        }
+    }
+    report[2] = match directions & 0x0f {
+        0b0001 => 0,
+        0b0011 => 1,
+        0b0010 => 2,
+        0b0110 => 3,
+        0b0100 => 4,
+        0b1100 => 5,
+        0b1000 => 6,
+        0b1001 => 7,
+        _ => 0x0f,
+    };
+    backend.send(BluetoothCommand::HidGamepad(report));
+}
+
+fn set_gamepad_control(
+    backend: &Backend,
+    mut state: Signal<GamepadInputState>,
+    pointer_id: i32,
+    control: GamepadControl,
+    pressed: bool,
+) {
+    state.with_mut(|state| {
+        if pressed {
+            state.controls.insert(pointer_id, control);
+        } else {
+            state.controls.remove(&pointer_id);
+        }
+    });
+    send_gamepad_report(backend, &state);
+}
+
+async fn begin_gamepad_stick(
+    backend: &Backend,
+    mut state: Signal<GamepadInputState>,
+    pointer_id: i32,
+    axis_x: usize,
+    axis_y: usize,
+    click_button: Option<u8>,
+) {
+    let script = format!(
+        "const el=document.getElementById('gamepad-stick-{axis_x}'); if(!el) return null; el.setPointerCapture({pointer_id}); const r=el.getBoundingClientRect(); return [r.left+r.width/2,r.top+r.height/2,r.width*0.36];"
+    );
+    let bounds = dioxus::document::eval(&script)
+        .await
+        .ok()
+        .and_then(|value| serde_json::from_value::<(f64, f64, f64)>(value).ok());
+    let Some((center_x, center_y, radius)) = bounds.filter(|(_, _, radius)| *radius > 0.0) else {
+        return;
+    };
+    if click_button.is_some() && !state.read().controls.contains_key(&pointer_id) {
+        return;
+    }
+    state.with_mut(|state| {
+        state.sticks.insert(
+            pointer_id,
+            StickGesture {
+                axis_x,
+                axis_y,
+                center_x,
+                center_y,
+                radius,
+            },
+        );
+    });
+    send_gamepad_report(backend, &state);
+}
+
+fn end_gamepad_stick(backend: &Backend, mut state: Signal<GamepadInputState>, pointer_id: i32) {
+    state.with_mut(|state| {
+        state.controls.remove(&pointer_id);
+        if let Some(stick) = state.sticks.remove(&pointer_id) {
+            state.axes[stick.axis_x] = 0;
+            state.axes[stick.axis_y] = 0;
+        }
+    });
+    send_gamepad_report(backend, &state);
+}
+
 fn press_control(
     backend: &Backend,
     active: &mut Signal<ActiveControls>,
@@ -567,6 +1384,7 @@ fn OpenWASDApp() -> Element {
     let mut selected_layout = use_signal(|| None::<usize>);
     let mut controls = use_signal(Vec::<CustomControl>::new);
     let mut active_controls = use_signal(ActiveControls::default);
+    let keyboard_pressed_keys = use_signal(HashMap::<i32, u8>::new);
     let mut edit_mode = use_signal(|| false);
     let mut layout_undo = use_signal(Vec::<LayoutSnapshot>::new);
     let mut layout_redo = use_signal(Vec::<LayoutSnapshot>::new);
@@ -575,7 +1393,8 @@ fn OpenWASDApp() -> Element {
     let button_editor_index = use_signal(|| None::<usize>);
     let mut button_editor_tab = use_signal(|| 0_u8);
     let mut hardware_learning = use_signal(|| None::<LearnTarget>);
-    let mut layout_mapping_action = use_signal(|| "gamepad-a".to_string());
+    let mut touchpad_gesture = use_signal(|| None::<TouchpadGesture>);
+    let mut layout_mapping_action = use_signal(|| "gamepad-0".to_string());
     let mut hardware_sources = use_signal(HashMap::<String, Vec<String>>::new);
     let mut layout_name = use_signal(String::new);
     let mut page_status = use_signal(String::new);
@@ -716,13 +1535,10 @@ fn OpenWASDApp() -> Element {
     let app_backend = backend.clone();
     let refresh_backend = app_backend.clone();
     let scan_backend = app_backend.clone();
-    let keyboard_backend = app_backend.clone();
-    let touchpad_backend = app_backend.clone();
     let gamepad_backend = app_backend.clone();
     let create_backend = app_backend.clone();
     let surface_gamepad_backend = app_backend.clone();
-    let surface_keyboard_backend = app_backend.clone();
-    let surface_touch_backend = app_backend.clone();
+    let surface_touchpad_backend = app_backend.clone();
     let surface_left_backend = app_backend.clone();
     let surface_middle_backend = app_backend.clone();
     let surface_right_backend = app_backend.clone();
@@ -808,7 +1624,7 @@ fn OpenWASDApp() -> Element {
                 }
             }
 
-            main { class: "page-content",
+            main { class: if current_screen == Screen::Surface && selected_kind().keyboard_form_factor().is_some() { "page-content keyboard-page-content" } else { "page-content" },
                 match current_screen {
                     Screen::Dashboard => rsx! {
                         section { class: "hero-card",
@@ -828,7 +1644,7 @@ fn OpenWASDApp() -> Element {
                         }
                         section { class: "quick-grid",
                             QuickCard { title: "Mouse / keyboard", detail: "Use the screen as a pointer and key surface.", onclick: move |_| { selected_kind.set(LayoutKind::Touchpad); selected_layout.set(None); screen.set(Screen::Surface); } }
-                            QuickCard { title: "Gamepad", detail: "Send gamepad buttons to a paired host.", onclick: move |_| { selected_kind.set(LayoutKind::Gamepad); selected_layout.set(None); screen.set(Screen::Surface); gamepad_backend.send(BluetoothCommand::StartHid); } }
+                            QuickCard { title: "Gamepad", detail: "Use the screen as an Xbox 360 style gamepad.", onclick: move |_| { selected_kind.set(LayoutKind::Gamepad); selected_layout.set(default_layout_index(&layouts(), LayoutKind::Gamepad)); screen.set(Screen::Surface); gamepad_backend.send(BluetoothCommand::StartHid); } }
                         }
                     },
                     Screen::Devices => rsx! {
@@ -856,11 +1672,14 @@ fn OpenWASDApp() -> Element {
                                             ConnectionState::Paired => BluetoothCommand::Connect(device.id.clone()),
                                             _ => BluetoothCommand::Pair(device.id.clone()),
                                         };
-                                        let device_signal = device.rssi_dbm.map(|value| format!("{value} dBm")).unwrap_or_else(|| "Signal unavailable".into());
+                                        let device_status = match device.rssi_dbm {
+                                            Some(signal) => format!("{state_name} · {signal} dBm"),
+                                            None => state_name.to_string(),
+                                        };
                                         let row_backend = app_backend.clone();
                                         rsx! { article { class: "device-row",
                                             div { class: "device-symbol", "◉" }
-                                            div { class: "device-info", h3 { "{name}" }, p { "{state_name} · {device_signal}" } }
+                                            div { class: "device-info", h3 { "{name}" }, p { "{device_status}" } }
                                             if !device.id.starts_with("system:") {
                                                 button { class: "button secondary", onclick: move |_| row_backend.send(device_command.clone()), "{device_action}" }
                                             }
@@ -874,15 +1693,18 @@ fn OpenWASDApp() -> Element {
                     Screen::Layouts => rsx! {
                         section { class: "panel layout-list-panel",
                             div { class: "layout-grid",
-                                LayoutCard { title: "Full keyboard", icon: "⌨", selected: selected_kind() == LayoutKind::Keyboard && selected_layout().is_none(), onclick: move |_| { selected_kind.set(LayoutKind::Keyboard); selected_layout.set(None); screen.set(Screen::Surface); keyboard_backend.send(BluetoothCommand::StartHid); } }
-                                LayoutCard { title: "Touchpad", icon: "▱", selected: selected_kind() == LayoutKind::Touchpad && selected_layout().is_none(), onclick: move |_| { selected_kind.set(LayoutKind::Touchpad); selected_layout.set(None); screen.set(Screen::Surface); touchpad_backend.send(BluetoothCommand::StartHid); } }
-                                LayoutCard { title: "Gamepad", icon: "◉", selected: selected_kind() == LayoutKind::Gamepad && selected_layout().is_none(), onclick: move |_| { selected_kind.set(LayoutKind::Gamepad); selected_layout.set(None); screen.set(Screen::Surface); surface_gamepad_backend.send(BluetoothCommand::StartHid); } }
                                 for (index, layout) in layouts().into_iter().enumerate() {
                                     {
                                         let title = layout.name.clone();
                                         let kind = layout.kind;
+                                        let icon = match kind {
+                                            LayoutKind::Keyboard60 | LayoutKind::Keyboard80 | LayoutKind::Keyboard100 => "⌨",
+                                            LayoutKind::Touchpad => "▱",
+                                            LayoutKind::Gamepad => "◉",
+                                            LayoutKind::Custom => "▦",
+                                        };
                                         let layout_backend = app_backend.clone();
-                                        rsx! { LayoutCard { title, icon: "▦", selected: selected_layout() == Some(index), onclick: move |_| { selected_kind.set(kind); selected_layout.set(Some(index)); screen.set(Screen::Surface); layout_backend.send(BluetoothCommand::StartHid); } } }
+                                        rsx! { LayoutCard { title, icon: icon.to_string(), selected: selected_layout() == Some(index), onclick: move |_| { selected_kind.set(kind); selected_layout.set(Some(index)); screen.set(Screen::Surface); edit_mode.set(false); layout_backend.send(BluetoothCommand::StartHid); } } }
                                     }
                                 }
                             }
@@ -897,7 +1719,7 @@ fn OpenWASDApp() -> Element {
                                     if name.is_empty() { page_status.set("Enter a name before saving.".into()); }
                                     else {
                                         let mut updated = layouts();
-                                        updated.push(SavedLayout { name: name.clone(), kind: LayoutKind::Custom, controls: vec![default_control()], geometry: vec![default_geometry(0)], hardware_mappings: Vec::new() });
+                                        updated.push(SavedLayout { name: name.clone(), kind: LayoutKind::Custom, is_default: false, controls: vec![default_control()], geometry: vec![default_geometry(0)], hardware_mappings: Vec::new() });
                                         match save_layouts(&updated) {
                                             Ok(()) => { let index = updated.len() - 1; layouts.set(updated); selected_layout.set(Some(index)); selected_kind.set(LayoutKind::Custom); controls.set(vec![default_control()]); edit_mode.set(false); screen.set(Screen::Surface); create_backend.send(BluetoothCommand::StartHid); }
                                             Err(error) => page_status.set(format!("Could not save layout: {error}")),
@@ -909,8 +1731,21 @@ fn OpenWASDApp() -> Element {
                             if !page_status().is_empty() { p { class: "form-status", "{page_status}" } }
                         }
                     },
-                    Screen::Surface => rsx! {
-                        section { class: "surface-panel",
+                    Screen::Surface => {
+                        let touch_move_backend = surface_touchpad_backend.clone();
+                        let touch_click_backend = surface_touchpad_backend.clone();
+                        let (touch_left_label, touch_left_action) = configured_control(&current_controls, "mouse-left", "Left click", ControlAction::MouseButton(1));
+                        let (touch_middle_label, touch_middle_action) = configured_control(&current_controls, "mouse-middle", "Middle click", ControlAction::MouseButton(4));
+                        let (touch_right_label, touch_right_action) = configured_control(&current_controls, "mouse-right", "Right click", ControlAction::MouseButton(2));
+                        let current_keyboard_form_factor =
+                            selected_kind().keyboard_form_factor().unwrap_or_default();
+                        let keyboard_main_rows =
+                            full_keyboard_main_rows(current_keyboard_form_factor);
+                        let keyboard_aux_rows =
+                            full_keyboard_aux_rows(current_keyboard_form_factor);
+                        let keyboard_numpad_rows = keyboard_numpad_rows();
+                        rsx! {
+                        section { class: if selected_kind().keyboard_form_factor().is_some() { "surface-panel keyboard-panel" } else { "surface-panel" },
                             if selected_kind() == LayoutKind::Custom {
                                 div { class: "custom-surface-grid",
                                     for (index, control) in current_controls.clone().into_iter().enumerate() {
@@ -941,32 +1776,119 @@ fn OpenWASDApp() -> Element {
                                     }
                                 }
                             } else if selected_kind() == LayoutKind::Gamepad {
-                                div { class: "gamepad-surface",
-                                    button { class: "gamepad-button gamepad-y", onclick: move |_| surface_gamepad_backend.send(BluetoothCommand::HidGamepadPress(3)), "Y" }
-                                    button { class: "gamepad-button gamepad-x", onclick: move |_| surface_keyboard_backend.send(BluetoothCommand::HidGamepadPress(2)), "X" }
-                                    button { class: "gamepad-button gamepad-b", onclick: move |_| surface_touch_backend.send(BluetoothCommand::HidGamepadPress(1)), "B" }
-                                    button { class: "gamepad-button gamepad-a", onclick: move |_| surface_left_backend.send(BluetoothCommand::HidGamepadPress(0)), "A" }
-                                }
-                            } else if selected_kind() == LayoutKind::Keyboard {
-                                div { class: "keyboard-surface",
-                                    for (label, usage) in [("Esc", 41), ("1", 30), ("2", 31), ("3", 32), ("4", 33), ("5", 34), ("6", 35), ("7", 36), ("8", 37), ("9", 38), ("0", 39), ("Tab", 43), ("Q", 20), ("W", 26), ("E", 8), ("R", 21), ("T", 23), ("Y", 28), ("U", 24), ("I", 12), ("O", 18), ("P", 19), ("A", 4), ("S", 22), ("D", 7), ("F", 9), ("G", 10), ("H", 11), ("J", 13), ("K", 14), ("L", 15), ("Z", 29), ("X", 27), ("C", 6), ("V", 25), ("B", 5), ("N", 17), ("M", 16), ("Space", 44)] {
-                                        {
-                                            let key_backend = surface_keyboard_backend.clone();
-                                            rsx! { button { class: "key-button", onclick: move |_| { let mut report = [0; 8]; report[2] = usage; key_backend.send(BluetoothCommand::HidKey(report)); }, "{label}" } }
+                                GamepadLayout { backend: surface_gamepad_backend.clone(), controls: current_controls.clone() }
+                            } else if selected_kind().keyboard_form_factor().is_some() {
+                                div { class: match current_keyboard_form_factor {
+                                    KeyboardFormFactor::Compact60 => "keyboard-surface keyboard-60",
+                                    KeyboardFormFactor::Tenkeyless80 => "keyboard-surface keyboard-80",
+                                    KeyboardFormFactor::Full100 => "keyboard-surface keyboard-100",
+                                },
+                                    div { class: "keyboard-main",
+                                        for row in keyboard_main_rows.clone() {
+                                            div { class: "keyboard-row",
+                                                for key in row {
+                                                    if key.usage == 0 {
+                                                        div { class: "keyboard-spacer", style: "flex:{key.flex};" }
+                                                    } else {
+                                                        {
+                                                            let (label, usage) = configured_keyboard_key(key, &current_controls);
+                                                            rsx! { KeyboardSurfaceKey { label, usage, flex: key.flex, class_name: key.class_name.to_string(), backend: app_backend.clone(), pressed_keys: keyboard_pressed_keys } }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if current_keyboard_form_factor != KeyboardFormFactor::Compact60 {
+                                        div { class: "keyboard-aux",
+                                            for row in keyboard_aux_rows.clone() {
+                                                div { class: "keyboard-row",
+                                                    for key in row {
+                                                        if key.usage == 0 {
+                                                            div { class: "keyboard-spacer", style: "flex:{key.flex};" }
+                                                        } else {
+                                                            {
+                                                                let (label, usage) = configured_keyboard_key(key, &current_controls);
+                                                                rsx! { KeyboardSurfaceKey { label, usage, flex: key.flex, class_name: key.class_name.to_string(), backend: app_backend.clone(), pressed_keys: keyboard_pressed_keys } }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if current_keyboard_form_factor == KeyboardFormFactor::Full100 {
+                                        div { class: "keyboard-numpad",
+                                            for row in keyboard_numpad_rows.clone() {
+                                                div { class: "keyboard-row",
+                                                    for key in row {
+                                                        if key.usage == 0 {
+                                                            div { class: "keyboard-spacer", style: "flex:{key.flex};" }
+                                                        } else {
+                                                            {
+                                                                let (label, usage) = configured_keyboard_key(key, &current_controls);
+                                                                rsx! { KeyboardSurfaceKey { label, usage, flex: key.flex, class_name: key.class_name.to_string(), backend: app_backend.clone(), pressed_keys: keyboard_pressed_keys } }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
                                 }
                             } else {
-                                div { class: "touch-surface", onclick: move |_| surface_touch_backend.send(BluetoothCommand::HidClick(1)),
-                                    span { "Tap to click" }
+                                div {
+                                    id: "touch-surface",
+                                    class: "touch-surface",
+                                    onpointerdown: move |event| {
+                                        if touchpad_gesture().is_some() { return; }
+                                        let point = event.data().client_coordinates();
+                                        let pointer_id = event.data().pointer_id();
+                                        touchpad_gesture.set(Some(TouchpadGesture {
+                                            pointer_id,
+                                            start_x: point.x,
+                                            start_y: point.y,
+                                            last_x: point.x,
+                                            last_y: point.y,
+                                            moved: false,
+                                        }));
+                                        let script = format!("document.getElementById('touch-surface')?.setPointerCapture({pointer_id});");
+                                        spawn(async move { let _ = dioxus::document::eval(&script).await; });
+                                    },
+                                    onpointermove: move |event| {
+                                        let Some(mut gesture) = touchpad_gesture() else { return; };
+                                        let pointer_id = event.data().pointer_id();
+                                        if pointer_id != gesture.pointer_id { return; }
+                                        let point = event.data().client_coordinates();
+                                        let dx = (point.x - gesture.last_x).round().clamp(-127.0, 127.0) as i8;
+                                        let dy = (point.y - gesture.last_y).round().clamp(-127.0, 127.0) as i8;
+                                        gesture.last_x = point.x;
+                                        gesture.last_y = point.y;
+                                        gesture.moved |= (point.x - gesture.start_x).hypot(point.y - gesture.start_y) >= 5.0;
+                                        touchpad_gesture.set(Some(gesture));
+                                        if dx != 0 || dy != 0 {
+                                            touch_move_backend.send(BluetoothCommand::HidMouse { buttons: 0, dx, dy, wheel: 0 });
+                                        }
+                                    },
+                                    onpointerup: move |event| {
+                                        let Some(gesture) = touchpad_gesture() else { return; };
+                                        if event.data().pointer_id() != gesture.pointer_id { return; }
+                                        touchpad_gesture.set(None);
+                                        if !gesture.moved {
+                                            if let ControlAction::MouseButton(buttons) = touch_left_action { touch_click_backend.send(BluetoothCommand::HidClick(buttons as i8)); }
+                                        }
+                                    },
+                                    onpointercancel: move |_| touchpad_gesture.set(None),
+                                    span { "Drag to move · tap to click" }
                                 }
                                 div { class: "mouse-actions",
-                                    button { class: "button secondary", onclick: move |_| surface_left_backend.send(BluetoothCommand::HidClick(1)), "Left click" }
-                                    button { class: "button secondary", onclick: move |_| surface_middle_backend.send(BluetoothCommand::HidClick(4)), "Middle click" }
-                                    button { class: "button secondary", onclick: move |_| surface_right_backend.send(BluetoothCommand::HidClick(2)), "Right click" }
+                                    button { class: "button secondary", onclick: move |_| if let ControlAction::MouseButton(buttons) = touch_left_action { surface_left_backend.send(BluetoothCommand::HidClick(buttons as i8)); }, "{touch_left_label}" }
+                                    button { class: "button secondary", onclick: move |_| if let ControlAction::MouseButton(buttons) = touch_middle_action { surface_middle_backend.send(BluetoothCommand::HidClick(buttons as i8)); }, "{touch_middle_label}" }
+                                    button { class: "button secondary", onclick: move |_| if let ControlAction::MouseButton(buttons) = touch_right_action { surface_right_backend.send(BluetoothCommand::HidClick(buttons as i8)); }, "{touch_right_label}" }
                                 }
                             }
                         }
+                    }
                     },
                     Screen::Settings => rsx! {
                         section { class: "panel form-panel",
@@ -979,7 +1901,38 @@ fn OpenWASDApp() -> Element {
                                 }
                                 p { class: "muted", "Changes are saved on this device." }
                             } else {
-                                p { class: "muted", "Surface settings are not available yet." }
+                                if let Some(index) = selected_layout() {
+                                    if let Some(layout) = layouts().get(index).cloned() {
+                                        p { class: "muted", "Edit labels and output mappings. Changes are saved on this device." }
+                                        if layout.is_default {
+                                            button { class: "button secondary", onclick: move |_| {
+                                                let mut updated = layouts();
+                                                if index < updated.len() {
+                                                    updated[index] = default_layout(layout.kind);
+                                                    if save_layouts(&updated).is_ok() {
+                                                        layouts.set(updated);
+                                                        layout_undo.set(Vec::new());
+                                                        layout_redo.set(Vec::new());
+                                                    }
+                                                }
+                                            }, "Restore defaults" }
+                                        }
+                                        div { class: "builtin-control-list",
+                                            for (control_index, control) in layout.controls.iter().cloned().enumerate() {
+                                                div { class: "builtin-control-row",
+                                                    input { class: "text-input compact-input", aria_label: "Control label", value: "{control.label}", oninput: move |event| update_custom_control(layouts, selected_layout, layout_undo, layout_redo, control_index, |control| control.label = event.value()) }
+                                                    select { class: "text-input compact-input", aria_label: "Output mapping", value: "{action_value(control.action)}", onchange: move |event| {
+                                                        if let Some(action) = parse_action_value(&event.value()) {
+                                                            update_custom_control(layouts, selected_layout, layout_undo, layout_redo, control_index, |control| control.action = action);
+                                                        }
+                                                    },
+                                                        for (value, label) in layout_action_choices(layout.kind) { option { value: "{value}", selected: action_value(control.action) == value, "{label}" } }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             }
                             button { class: "button secondary", onclick: move |_| screen.set(Screen::Surface), "Done" }
                         }
@@ -995,9 +1948,9 @@ fn OpenWASDApp() -> Element {
                                     }
                                     if button_editor_tab() == 0 {
                                         div { class: "mapping-content",
-                                            p { class: "muted", "Choose a keyboard shortcut to send when this button is pressed." }
+                                            p { class: "muted", "Choose a keyboard key to send when this button is pressed." }
                                             div { class: "mapping-choice-grid",
-                                                for (label, usage) in [("Space", 44_u8), ("Enter", 40), ("Escape", 41), ("Tab", 43), ("A", 4), ("B", 5), ("X", 27), ("Y", 28)] {
+                                                for (label, usage) in keyboard_mapping_choices() {
                                                     button { class: if control.action == ControlAction::Keyboard(usage) && control.text_output.is_none() { "mapping-choice selected" } else { "mapping-choice" }, onclick: move |_| update_custom_control(layouts, selected_layout, layout_undo, layout_redo, control_index, |control| { control.action = ControlAction::Keyboard(usage); control.text_output = None; }), "{label}" }
                                                 }
                                             }
@@ -1056,10 +2009,9 @@ fn OpenWASDApp() -> Element {
                                 p { class: "muted", "These mappings do not add buttons to the layout. They work whenever this layout is active." }
                                 div { class: "hidden-mapping-create",
                                     select { aria_label: "Action for hidden hardware mapping", value: "{layout_mapping_action()}", onchange: move |event| layout_mapping_action.set(event.value()),
-                                        option { value: "gamepad-a", "Gamepad A" }
-                                        option { value: "gamepad-b", "Gamepad B" }
-                                        option { value: "gamepad-x", "Gamepad X" }
-                                        option { value: "gamepad-y", "Gamepad Y" }
+                                        for button in 0_u8..16 {
+                                            option { value: "gamepad-{button}", "Gamepad {gamepad_button_name(button)}" }
+                                        }
                                         option { value: "key-space", "Space" }
                                         option { value: "key-enter", "Enter" }
                                         option { value: "mouse-left", "Mouse left" }
@@ -1366,6 +2318,46 @@ fn CustomControlView(
 }
 
 #[component]
+fn KeyboardSurfaceKey(
+    label: String,
+    usage: u8,
+    flex: u8,
+    class_name: String,
+    backend: Rc<Backend>,
+    pressed_keys: Signal<HashMap<i32, u8>>,
+) -> Element {
+    let down_backend = backend.clone();
+    let up_backend = backend.clone();
+    let cancel_backend = backend;
+    let down_keys = pressed_keys;
+    let up_keys = pressed_keys;
+    let cancel_keys = pressed_keys;
+
+    rsx! {
+        button {
+            id: "keyboard-key-{usage}",
+            class: "key-button {class_name}",
+            style: "flex:{flex};",
+            aria_label: "{label}",
+            onpointerdown: move |event| {
+                event.prevent_default();
+                let pointer_id = event.data().pointer_id();
+                update_keyboard_pointer(&down_backend, down_keys, pointer_id, usage, true);
+                let script = format!("document.getElementById('keyboard-key-{usage}')?.setPointerCapture({pointer_id});");
+                spawn(async move { let _ = dioxus::document::eval(&script).await; });
+            },
+            onpointerup: move |event| {
+                update_keyboard_pointer(&up_backend, up_keys, event.data().pointer_id(), usage, false);
+            },
+            onpointercancel: move |event| {
+                update_keyboard_pointer(&cancel_backend, cancel_keys, event.data().pointer_id(), usage, false);
+            },
+            "{label}"
+        }
+    }
+}
+
+#[component]
 fn QuickCard(title: String, detail: String, onclick: EventHandler<MouseEvent>) -> Element {
     rsx! { button { class: "quick-card", onclick: move |event| onclick.call(event), h3 { "{title}" }, p { "{detail}" } } }
 }
@@ -1378,6 +2370,158 @@ fn LayoutCard(
     onclick: EventHandler<MouseEvent>,
 ) -> Element {
     rsx! { button { class: if selected { "layout-card selected" } else { "layout-card" }, onclick: move |event| onclick.call(event), span { class: "layout-icon", "{icon}" }, span { class: "layout-title", "{title}" } } }
+}
+
+#[component]
+fn GamepadLayout(backend: Rc<Backend>, controls: Vec<CustomControl>) -> Element {
+    let state = use_signal(GamepadInputState::default);
+    rsx! {
+        div { class: "gamepad-phone-surface",
+            div { class: "xbox-phone-shoulders",
+                div { class: "xbox-phone-shoulder-pair",
+                    { let (label, action) = configured_control(&controls, "button:4", "LB", ControlAction::GamepadButton(4)); rsx! { GamepadButton { label, action, style_class: "phone-shoulder", backend: backend.clone(), state } } }
+                    { let (label, action) = configured_control(&controls, "button:6", "LT", ControlAction::GamepadButton(6)); rsx! { GamepadButton { label, action, style_class: "phone-trigger", backend: backend.clone(), state } } }
+                }
+                div { class: "xbox-phone-shoulder-pair",
+                    { let (label, action) = configured_control(&controls, "button:5", "RB", ControlAction::GamepadButton(5)); rsx! { GamepadButton { label, action, style_class: "phone-shoulder", backend: backend.clone(), state } } }
+                    { let (label, action) = configured_control(&controls, "button:7", "RT", ControlAction::GamepadButton(7)); rsx! { GamepadButton { label, action, style_class: "phone-trigger", backend: backend.clone(), state } } }
+                }
+            }
+            div { class: "xbox-phone-controls",
+                GamepadDpad { backend: backend.clone(), state, style_class: "phone-dpad", controls: controls.clone() }
+                div { class: "xbox-phone-middle",
+                    div { class: "xbox-phone-start-buttons",
+                        { let (label, action) = configured_control(&controls, "button:8", "Back", ControlAction::GamepadButton(8)); rsx! { GamepadButton { label, action, style_class: "phone-center-button", backend: backend.clone(), state } } }
+                        { let (label, action) = configured_control(&controls, "button:9", "Start", ControlAction::GamepadButton(9)); rsx! { GamepadButton { label, action, style_class: "phone-center-button", backend: backend.clone(), state } } }
+                    }
+                    div { class: "xbox-phone-sticks",
+                        { let (label, action) = configured_control(&controls, "button:11", "L3", ControlAction::GamepadButton(11)); rsx! { GamepadStick { label, button_action: action, axis_x: 0, axis_y: 1, backend: backend.clone(), state } } }
+                        { let (label, action) = configured_control(&controls, "button:12", "R3", ControlAction::GamepadButton(12)); rsx! { GamepadStick { label, button_action: action, axis_x: 2, axis_y: 3, backend: backend.clone(), state } } }
+                    }
+                }
+                GamepadFaceButtons { backend: backend.clone(), state, controls: controls.clone() }
+            }
+        }
+    }
+}
+
+#[component]
+fn GamepadButton(
+    label: String,
+    action: ControlAction,
+    style_class: String,
+    backend: Rc<Backend>,
+    state: Signal<GamepadInputState>,
+    #[props(default)] accessibility_label: Option<String>,
+) -> Element {
+    let down_backend = backend.clone();
+    let up_backend = backend.clone();
+    let cancel_backend = backend;
+    let control = match action {
+        ControlAction::GamepadButton(button) => GamepadControl::Button(button),
+        ControlAction::GamepadHat(direction) => GamepadControl::Dpad(direction),
+        _ => GamepadControl::Button(0),
+    };
+    let accessibility_label = accessibility_label.unwrap_or_else(|| label.clone());
+    rsx! { button {
+        id: "gamepad-control-{label}", class: "gamepad-control {style_class}", aria_label: "{accessibility_label}",
+        onpointerdown: move |event| {
+            event.prevent_default();
+            let pointer_id = event.data().pointer_id();
+            let script = format!("document.getElementById('gamepad-control-{label}')?.setPointerCapture({pointer_id});");
+            spawn(async move { let _ = dioxus::document::eval(&script).await; });
+            set_gamepad_control(&down_backend, state, pointer_id, control, true);
+        },
+        onpointerup: move |event| set_gamepad_control(&up_backend, state, event.data().pointer_id(), control, false),
+        onpointercancel: move |event| set_gamepad_control(&cancel_backend, state, event.data().pointer_id(), control, false),
+        "{label}"
+    } }
+}
+
+#[component]
+fn GamepadStick(
+    label: String,
+    button_action: ControlAction,
+    axis_x: usize,
+    axis_y: usize,
+    backend: Rc<Backend>,
+    state: Signal<GamepadInputState>,
+) -> Element {
+    let axes = state.read().axes;
+    let cap_x = axes[axis_x] as f64 / 127.0 * 26.0;
+    let cap_y = axes[axis_y] as f64 / 127.0 * 26.0;
+    let down_backend = backend.clone();
+    let move_backend = backend.clone();
+    let up_state = state;
+    let up_backend = backend.clone();
+    let cancel_state = state;
+    let cancel_backend = backend;
+    let click_button = match button_action {
+        ControlAction::GamepadButton(button) => Some(button),
+        _ => None,
+    };
+    rsx! { button {
+        id: "gamepad-stick-{axis_x}", class: "gamepad-stick", aria_label: "Gamepad stick {label}",
+        onpointerdown: move |event| {
+            event.prevent_default();
+            let pointer_id = event.data().pointer_id();
+            if let Some(button) = click_button {
+                set_gamepad_control(&down_backend, state, pointer_id, GamepadControl::Button(button), true);
+            }
+            let backend = down_backend.clone();
+            spawn(async move { begin_gamepad_stick(&backend, state, pointer_id, axis_x, axis_y, click_button).await; });
+        },
+        onpointermove: move |event| {
+            let pointer_id = event.data().pointer_id();
+            let Some(gesture) = state.read().sticks.get(&pointer_id).copied() else { return; };
+            let point = event.data().client_coordinates();
+            state.with_mut(|state| {
+                let x = ((point.x - gesture.center_x) / gesture.radius).clamp(-1.0, 1.0);
+                let y = ((point.y - gesture.center_y) / gesture.radius).clamp(-1.0, 1.0);
+                let magnitude = x.hypot(y).max(1.0);
+                state.axes[gesture.axis_x] = (x / magnitude * 127.0).round() as i8;
+                state.axes[gesture.axis_y] = (y / magnitude * 127.0).round() as i8;
+            });
+            send_gamepad_report(&move_backend, &state);
+        },
+        onpointerup: move |event| end_gamepad_stick(&up_backend, up_state, event.data().pointer_id()),
+        onpointercancel: move |event| end_gamepad_stick(&cancel_backend, cancel_state, event.data().pointer_id()),
+        div { class: "stick-cap", style: "transform:translate({cap_x}px,{cap_y}px);" }
+        span { "{label}" }
+    } }
+}
+
+#[component]
+fn GamepadFaceButtons(
+    backend: Rc<Backend>,
+    state: Signal<GamepadInputState>,
+    controls: Vec<CustomControl>,
+) -> Element {
+    rsx! {
+        div { class: "face-cluster",
+            { let (label, action) = configured_control(&controls, "button:3", "Y", ControlAction::GamepadButton(3)); rsx! { GamepadButton { label, action, style_class: "face-button face-top", backend: backend.clone(), state } } }
+            { let (label, action) = configured_control(&controls, "button:2", "X", ControlAction::GamepadButton(2)); rsx! { GamepadButton { label, action, style_class: "face-button face-left", backend: backend.clone(), state } } }
+            { let (label, action) = configured_control(&controls, "button:1", "B", ControlAction::GamepadButton(1)); rsx! { GamepadButton { label, action, style_class: "face-button face-right", backend: backend.clone(), state } } }
+            { let (label, action) = configured_control(&controls, "button:0", "A", ControlAction::GamepadButton(0)); rsx! { GamepadButton { label, action, style_class: "face-button face-bottom", backend: backend.clone(), state } } }
+        }
+    }
+}
+
+#[component]
+fn GamepadDpad(
+    style_class: String,
+    backend: Rc<Backend>,
+    state: Signal<GamepadInputState>,
+    controls: Vec<CustomControl>,
+) -> Element {
+    rsx! {
+        div { class: "gamepad-dpad {style_class}",
+            { let (label, action) = configured_control(&controls, "hat:0", "D-pad up", ControlAction::GamepadHat(0)); rsx! { GamepadButton { label: "▲".to_string(), accessibility_label: Some(label), action, style_class: "dpad-up", backend: backend.clone(), state } } }
+            { let (label, action) = configured_control(&controls, "hat:1", "D-pad right", ControlAction::GamepadHat(1)); rsx! { GamepadButton { label: "▶".to_string(), accessibility_label: Some(label), action, style_class: "dpad-right", backend: backend.clone(), state } } }
+            { let (label, action) = configured_control(&controls, "hat:2", "D-pad down", ControlAction::GamepadHat(2)); rsx! { GamepadButton { label: "▼".to_string(), accessibility_label: Some(label), action, style_class: "dpad-down", backend: backend.clone(), state } } }
+            { let (label, action) = configured_control(&controls, "hat:3", "D-pad left", ControlAction::GamepadHat(3)); rsx! { GamepadButton { label: "◀".to_string(), accessibility_label: Some(label), action, style_class: "dpad-left", backend: backend.clone(), state } } }
+        }
+    }
 }
 
 fn main() {

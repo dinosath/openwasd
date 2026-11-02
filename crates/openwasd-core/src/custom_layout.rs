@@ -8,12 +8,17 @@ use std::collections::{BTreeMap, BTreeSet};
 pub enum ControlAction {
     Keyboard(u8),
     GamepadButton(u8),
+    /// D-pad direction: up, right, down, left (0 through 3).
+    GamepadHat(u8),
     MouseButton(u8),
     BluetoothSettings,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CustomControl {
+    /// Stable identifier for controls in factory layouts.
+    #[serde(default)]
+    pub builtin_id: Option<String>,
     pub label: String,
     pub action: ControlAction,
     /// Optional text emitted as keystrokes when this control is pressed.
@@ -82,14 +87,21 @@ impl ActiveControls {
         let mut keyboard = [0; 8];
         let mut gamepad = [0, 0, 0x0f, 0, 0, 0, 0];
         let mut mouse_buttons = 0;
+        let mut hat_directions = 0_u8;
         let mut keys = BTreeSet::new();
         for action in self.pressed.values() {
             match *action {
+                ControlAction::Keyboard(usage @ 0xe0..=0xe7) => {
+                    keyboard[0] |= 1 << (usage - 0xe0);
+                }
                 ControlAction::Keyboard(usage) if usage != 0 => {
                     keys.insert(usage);
                 }
                 ControlAction::GamepadButton(button) if button < 16 => {
                     gamepad[(button / 8) as usize] |= 1 << (button % 8);
+                }
+                ControlAction::GamepadHat(direction) if direction < 4 => {
+                    hat_directions |= 1 << direction;
                 }
                 ControlAction::MouseButton(buttons) => mouse_buttons |= buttons & 0x07,
                 _ => {}
@@ -98,6 +110,17 @@ impl ActiveControls {
         for (slot, usage) in keyboard[2..].iter_mut().zip(keys) {
             *slot = usage;
         }
+        gamepad[2] = match hat_directions & 0x0f {
+            0b0001 => 0,
+            0b0011 => 1,
+            0b0010 => 2,
+            0b0110 => 3,
+            0b0100 => 4,
+            0b1100 => 5,
+            0b1000 => 6,
+            0b1001 => 7,
+            _ => 0x0f,
+        };
         ControlReports {
             keyboard,
             gamepad,

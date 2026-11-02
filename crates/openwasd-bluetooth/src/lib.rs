@@ -503,7 +503,7 @@ impl BtleplugAdapter {
 
         let status = self.hid_status()?;
         Err(BluetoothError::Failed(format!(
-            "Timed out waiting for Android system HID registration; current status: {status}"
+            "Android did not confirm Bluetooth HID registration. Make sure another app is not using the HID profile, then reopen a control surface; current status: {status}"
         )))
     }
 

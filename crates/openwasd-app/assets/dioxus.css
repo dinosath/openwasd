@@ -39,6 +39,7 @@ h1 { font-size: clamp(20px, 2.4vw, 27px); font-weight: 650; letter-spacing: -0.0
 .drawer-link.active { background: #e3f6f7; color: #087e8a; }
 .drawer-icon { display: grid; place-items: center; width: 26px; font-size: 19px; }
 .page-content { width: 100%; margin: 0 auto; flex: 1; }
+.keyboard-page-content { min-height: 0; display: flex; flex-direction: column; }
 .hero-card, .panel, .status-card { background: white; border-radius: 20px; padding: clamp(20px, 4vw, 38px); box-shadow: 0 10px 35px #182b3c0a; }
 .hero-card { min-height: 310px; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 16px; background: linear-gradient(140deg, #fff 15%, #e9f9fa); }
 .eyebrow { color: #008e9e; font-size: 11px; font-weight: 700; letter-spacing: .12em; }
@@ -118,12 +119,63 @@ h1 { font-size: clamp(20px, 2.4vw, 27px); font-weight: 650; letter-spacing: -0.0
 .surface-control:active { background: #9ee5ed; }
 .add-control { grid-column: 1 / -1; border: 1px dashed #9bcbd1; background: #f5fcfc; color: #008e9e; }
 .control-editor { display: flex; flex-direction: column; gap: 8px; border: 1px solid #e2edf1; border-radius: 14px; padding: 10px; }
+.builtin-control-list { display: flex; flex-direction: column; gap: 8px; width: min(760px, 100%); }
+.builtin-control-row { display: grid; grid-template-columns: minmax(120px, .8fr) minmax(180px, 1.2fr); gap: 8px; width: 100%; }
+.builtin-control-row .compact-input { width: 100%; min-width: 0; }
 .compact-input { width: 100%; min-height: 40px; }
-.gamepad-surface { flex: 1; min-height: 420px; display: grid; grid-template-columns: 1fr 1fr; align-content: center; justify-items: center; gap: 18px; background: #f5f8fa; border-radius: 20px; padding: 24px; }
-.gamepad-button { border: 0; border-radius: 50%; width: clamp(76px, 16vw, 120px); height: clamp(76px, 16vw, 120px); font-size: 28px; font-weight: 800; color: white; }
-.gamepad-y { background: #d0a126; }.gamepad-x { background: #4288c5; }.gamepad-b { background: #d75154; }.gamepad-a { background: #52a15d; }
-.keyboard-surface { display: grid; grid-template-columns: repeat(10, minmax(34px, 1fr)); gap: 7px; align-content: start; }
-.key-button { min-height: 48px; border: 0; border-radius: 9px; background: #edf3f7; box-shadow: 0 2px #cad9df; }
+.controller-surface { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; justify-content: center; gap: clamp(8px, 2vh, 22px); padding: clamp(8px, 2vw, 24px); overflow: hidden; border: 1px solid #c8d1d9; border-radius: 32px 32px 22% 22%; background: linear-gradient(155deg, #eef2f5, #dce3e9); touch-action: manipulation; user-select: none; }
+.app-shell:has(.gamepad-phone-surface) { height: 100dvh; min-height: 0; }
+.app-shell:has(.gamepad-phone-surface) .page-content { min-height: 0; display: flex; flex: 1; flex-direction: column; }
+.app-shell:has(.gamepad-phone-surface) .surface-panel { min-height: 0; }
+.gamepad-phone-surface { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; gap: clamp(10px, 2vh, 24px); padding: clamp(14px, 3vw, 30px); overflow: hidden; border: 7px solid #252b38; border-radius: 28px; background: linear-gradient(145deg, #171b26, #252a37); box-shadow: inset 0 0 0 2px #454c5b; touch-action: none; user-select: none; }
+.xbox-phone-shoulders { display: flex; align-items: flex-start; justify-content: space-between; min-height: clamp(72px, 12vh, 104px); }
+.xbox-phone-shoulder-pair { display: flex; flex-direction: column; gap: 5px; width: min(16%, 180px); }
+.phone-shoulder, .phone-trigger { min-width: 0; min-height: clamp(26px, 4.5vh, 40px); padding: 0 8px; border: 1px solid #566174; border-radius: 11px; background: #303747; color: #f3f6fa; font-size: clamp(12px, 2vw, 19px); }
+.phone-trigger { background: #414a5a; }
+.xbox-phone-controls { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: space-between; gap: 3%; padding: 0 3%; }
+.phone-dpad { width: clamp(124px, 22vw, 205px); }
+.phone-dpad button { background: #353d4c; color: #f2f4f7; }
+.xbox-phone-middle { display: flex; flex: 1; align-items: center; justify-content: center; flex-direction: column; gap: clamp(8px, 1.6vh, 18px); min-width: 90px; height: 100%; }
+.xbox-phone-start-buttons { display: flex; align-items: center; justify-content: center; gap: clamp(8px, 1.5vw, 18px); }
+.phone-center-button { min-height: 40px; padding: 0 20px; border: 1px solid #657186; border-radius: 999px; background: #303747; color: #edf1f5; font-size: clamp(12px, 1.9vw, 17px); }
+.xbox-phone-sticks { display: flex; align-items: center; justify-content: center; gap: clamp(12px, 3vw, 36px); margin-top: 4px; }
+.gamepad-phone-surface .gamepad-stick { width: clamp(72px, 12vw, 108px); background: radial-gradient(circle, #596475 0 55%, #697587 56% 68%, #465061 69% 100%); color: #e8edf3; }
+.controller-shoulders { display: flex; justify-content: space-between; gap: 20%; padding: 0 2%; }
+.shoulder-pair { display: flex; flex: 1; gap: 8px; max-width: 44%; }
+.gamepad-control { display: grid; place-items: center; flex: 0 0 auto; border: 1px solid #b5c0c9; background: linear-gradient(#fff, #e4e9ed); color: #263746; font-weight: 700; touch-action: manipulation; user-select: none; }
+.shoulder-button, .trigger-button { min-width: 0; flex: 1; height: clamp(32px, 7vh, 58px); border-radius: 14px 14px 8px 8px; font-size: clamp(11px, 2.4vw, 17px); }
+.trigger-button { border-radius: 10px; background: linear-gradient(#d8dee4, #c5ced6); }
+.controller-body { display: flex; align-items: center; justify-content: space-between; flex: 1; min-height: 0; gap: clamp(4px, 2vw, 24px); }
+.controller-grip { display: flex; align-items: center; justify-content: center; flex: 1 1 36%; min-width: 0; height: 100%; }
+.controller-left { border-radius: 46% 16% 24% 48%; }
+.controller-right { border-radius: 16% 46% 48% 24%; }
+.controller-control-row { display: flex; flex-direction: column; align-items: center; justify-content: space-around; gap: clamp(14px, 5vh, 44px); width: 100%; height: 100%; }
+.controller-center { display: flex; flex: 0 0 22%; flex-direction: column; align-items: center; justify-content: center; gap: clamp(8px, 2vh, 20px); min-width: 72px; }
+.controller-meta-row { display: flex; align-items: center; justify-content: center; gap: clamp(5px, 1.2vw, 12px); width: 100%; }
+.meta-button { min-height: 32px; padding: 0 10px; border-radius: 999px; font-size: clamp(9px, 1.6vw, 12px); }
+.home-button { width: clamp(34px, 7vw, 52px); height: clamp(34px, 7vw, 52px); border-radius: 50%; border-color: #9cabb7; background: linear-gradient(#e4f2fa, #a9cce4); font-size: clamp(8px, 1.4vw, 11px); }
+.xbox-meta-row { margin: 20% 0; }
+.controller-touchpad { width: min(100%, 210px); height: clamp(42px, 11vh, 88px); border: 1px solid #adb9c4; border-radius: 38% 38% 22% 22%; background: linear-gradient(#f9fafb, #dfe5ea); color: #596c7c; font-size: clamp(10px, 1.6vw, 13px); }
+.gamepad-stick { display: flex; position: relative; flex-direction: column; align-items: center; justify-content: center; gap: 5px; width: clamp(66px, 15vw, 116px); aspect-ratio: 1; border: 0; border-radius: 50%; background: radial-gradient(circle, #aeb9c3 0 55%, #cbd3da 56% 68%, #9eabb6 69% 100%); color: #53616d; font-size: 11px; font-weight: 700; touch-action: none; user-select: none; }
+.stick-cap { width: 58%; aspect-ratio: 1; border: 2px solid #a3afb9; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #737f89, #303942 72%); box-shadow: 0 2px 5px #24303a55; }
+.face-cluster { position: relative; width: clamp(112px, 25vw, 186px); aspect-ratio: 1; }
+.gamepad-phone-surface .face-cluster { width: clamp(100px, 19vw, 160px); }
+.face-button { position: absolute; width: 34%; height: 34%; border: 0; border-radius: 50%; color: white; font-size: clamp(15px, 3.4vw, 25px); box-shadow: 0 2px 5px #28313a3a; }
+.face-top { top: 0; left: 33%; background: #b79a2d; }.face-left { top: 33%; left: 0; background: #4288c5; }.face-right { top: 33%; right: 0; background: #d75154; }.face-bottom { bottom: 0; left: 33%; background: #52a15d; }
+.gamepad-dpad { position: relative; width: clamp(78px, 18vw, 132px); aspect-ratio: 1; }
+.gamepad-dpad button { position: absolute; display: grid; place-items: center; width: 34%; height: 34%; padding: 0; border: 0; background: #333c44; color: #f5f7f8; font-size: clamp(12px, 2.8vw, 19px); }
+.dpad-up { top: 0; left: 33%; border-radius: 8px 8px 2px 2px; }.dpad-right { top: 33%; right: 0; border-radius: 2px 8px 8px 2px; }.dpad-down { bottom: 0; left: 33%; border-radius: 2px 2px 8px 8px; }.dpad-left { top: 33%; left: 0; border-radius: 8px 2px 2px 8px; }
+.keyboard-panel { min-height: 0; overflow: hidden; padding: clamp(3px, .5vw, 7px); }
+.keyboard-surface { display: flex; flex: 1; min-height: 0; gap: clamp(3px, .45vw, 7px); touch-action: none; user-select: none; }
+.keyboard-main, .keyboard-aux { display: flex; min-width: 0; min-height: 0; flex-direction: column; gap: clamp(3px, .45vw, 7px); }
+.keyboard-main { flex: 1; }
+.keyboard-aux { flex: 0 0 19%; }
+.keyboard-numpad { display: flex; flex: 0 0 19%; min-width: 0; min-height: 0; flex-direction: column; gap: clamp(3px, .45vw, 7px); }
+.keyboard-100 .keyboard-aux { flex-basis: 16%; }
+.keyboard-row { display: flex; flex: 1; min-width: 0; min-height: 0; gap: clamp(2px, .35vw, 5px); }
+.keyboard-spacer { min-width: 0; }
+.key-button { min-width: 0; min-height: 0; padding: 2px; border: 0; border-radius: clamp(4px, .8vw, 10px); background: #edf3f7; box-shadow: 0 2px #cad9df; font-size: clamp(9px, 1.05vw, 16px); font-weight: 650; line-height: 1.05; touch-action: none; user-select: none; -webkit-user-select: none; }
+.key-button-wide { font-size: clamp(8px, .9vw, 14px); }
 .key-button:active { transform: translateY(2px); box-shadow: none; background: #c9e9ee; }
 .touch-surface { flex: 1; min-height: 340px; border: 2px solid #dfe9ed; border-radius: 20px; background: linear-gradient(145deg, #f8fbfc, #e9f3f6); display: grid; place-items: center; color: #718597; font-size: 18px; touch-action: none; }
 @media (max-width: 720px) {
@@ -136,9 +188,19 @@ h1 { font-size: clamp(20px, 2.4vw, 27px); font-weight: 650; letter-spacing: -0.0
     .quick-grid, .layout-grid { grid-template-columns: 1fr; }
     .layout-card { min-height: 80px; }
     .surface-panel { min-height: calc(100dvh - 42px); padding: 3px; }
-    .gamepad-surface { min-height: 55vh; }
-    .keyboard-surface { grid-template-columns: repeat(6, minmax(36px, 1fr)); }
-    .key-button { min-height: 42px; }
+    .controller-surface { border-radius: 22px 22px 18% 18%; }
+    .controller-center { flex-basis: 20%; min-width: 64px; }
+    .controller-control-row { gap: 10px; }
+    .builtin-control-row { grid-template-columns: minmax(90px, .8fr) minmax(130px, 1.2fr); gap: 5px; }
+    .meta-button { min-height: 28px; padding: 0 6px; }
+    .keyboard-surface { gap: 2px; }
+    .keyboard-main, .keyboard-aux { gap: 2px; }
+    .keyboard-aux { flex-basis: 24%; }
+    .keyboard-numpad { flex-basis: 22%; gap: 2px; }
+    .keyboard-100 .keyboard-aux { flex-basis: 14%; }
+    .keyboard-row { gap: 2px; }
+    .key-button { font-size: clamp(8px, 1.8vw, 13px); }
+    .key-button-wide { font-size: clamp(7px, 1.5vw, 11px); }
     .device-row { gap: 8px; padding: 10px; }
     .device-row .button { padding: 9px 12px; }
 }
